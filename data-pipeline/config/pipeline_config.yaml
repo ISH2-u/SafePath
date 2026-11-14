@@ -1,0 +1,37 @@
+pipeline:
+  name: "SafePath AI Historical Crime Pipeline"
+  version: "1.0.0"
+  h3_resolution_default: 8
+  supported_h3_resolutions: [7, 8, 9]
+
+coordinates:
+  india_bounds:
+    min_lat: 6.4
+    max_lat: 37.6
+    min_lng: 68.7
+    max_lng: 97.4
+  zero_island_tolerance: 0.001
+
+deduplication:
+  strategy: "exact"
+  key_columns: ["incident_date", "crime_type", "latitude", "longitude"]
+  spatial_tolerance_deg: 0.001
+
+category_mappings:
+  THEFT: ["theft", "snatching", "pickpocketing", "stealing", "chori", "चोरी"]
+  ROBBERY: ["robbery", "dacoity", "loot", "armed robbery", "mugging"]
+  ASSAULT: ["assault", "battery", "grievous hurt", "affray", "attack", "violence"]
+  BURGLARY: ["burglary", "housebreaking", "trespass"]
+  HARASSMENT: ["harassment", "stalking", "eve teasing", "molestation", "outraging modesty"]
+  FRAUD: ["cheating", "fraud", "forgery", "cyber fraud", "embezzlement"]
+  OTHER: []
+
+quality_thresholds:
+  min_valid_coord_pct: 40.0
+  min_valid_date_pct: 60.0
+
+ethical_rules:
+  never_invent_coordinates: true
+  never_extrapolate_district_to_street: true
+  disallow_victim_pii: true
+

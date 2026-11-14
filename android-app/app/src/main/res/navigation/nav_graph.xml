@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/nav_home">
+
+    <fragment
+        android:id="@+id/nav_home"
+        android:name="com.safepath.ai.fragments.HomeFragment"
+        android:label="@string/nav_home"
+        tools:layout="@layout/fragment_home" />
+
+    <fragment
+        android:id="@+id/nav_map"
+        android:name="com.safepath.ai.fragments.MapFragment"
+        android:label="@string/nav_map"
+        tools:layout="@layout/fragment_map" />
+
+    <fragment
+        android:id="@+id/nav_journey"
+        android:name="com.safepath.ai.fragments.JourneyFragment"
+        android:label="@string/nav_journey"
+        tools:layout="@layout/fragment_journey" />
+
+    <fragment
+        android:id="@+id/nav_contacts"
+        android:name="com.safepath.ai.fragments.EmergencyContactsFragment"
+        android:label="@string/nav_contacts"
+        tools:layout="@layout/fragment_contacts" />
+
+    <fragment
+        android:id="@+id/nav_sos"
+        android:name="com.safepath.ai.fragments.SosFragment"
+        android:label="@string/nav_sos"
+        tools:layout="@layout/fragment_sos" />
+
+    <fragment
+        android:id="@+id/nav_assistant"
+        android:name="com.safepath.ai.fragments.SafetyAssistantFragment"
+        android:label="@string/nav_assistant"
+        tools:layout="@layout/fragment_assistant" />
+
+    <fragment
+        android:id="@+id/nav_profile"
+        android:name="com.safepath.ai.fragments.ProfileFragment"
+        android:label="@string/nav_profile"
+        tools:layout="@layout/fragment_profile" />
+
+    <fragment
+        android:id="@+id/nav_settings"
+        android:name="com.safepath.ai.fragments.SettingsFragment"
+        android:label="@string/nav_settings"
+        tools:layout="@layout/fragment_settings" />
+
+    <fragment
+        android:id="@+id/nav_voice_codeword"
+        android:name="com.safepath.ai.fragments.VoiceCodewordFragment"
+        android:label="@string/nav_voice_codeword"
+        tools:layout="@layout/fragment_voice_codeword" />
+
+</navigation>

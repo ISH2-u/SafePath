@@ -1,0 +1,22 @@
+incident_id,incident_date,report_date,crime_type,ipc_section,state,district,city,latitude,longitude,description
+INC001,2023-04-12 21:30:00,2023-04-13 09:15:00,Snatching,379,Delhi,Central Delhi,New Delhi,28.6448,77.2167,Mobile phone snatched by bike riders near metro gate
+INC002,2023-04-15 18:45:00,2023-04-15 20:00:00,Theft,379,Delhi,South Delhi,Saket,28.5244,77.2167,Two-wheeler stolen from mall parking lot
+INC003,2023-05-02 23:10:00,2023-05-03 08:30:00,Robbery,392,Maharashtra,Mumbai Suburban,Andheri,19.1136,72.8697,Armed robbery at convenience store
+INC004,2023-05-02 23:10:00,2023-05-03 08:30:00,Robbery,392,Maharashtra,Mumbai Suburban,Andheri,19.1136,72.8697,Armed robbery at convenience store
+INC005,2023-05-18 14:20:00,2023-05-18 16:00:00,Eve Teasing,509,Karnataka,Bengaluru Urban,Indiranagar,12.9784,77.6408,Verbal harassment reported near bus shelter
+INC006,2023-06-01 02:00:00,2023-06-01 07:00:00,Burglary,457,Karnataka,Bengaluru Urban,Koramangala,12.9352,77.6245,Residential burglary during night hours
+INC007,2023-06-10 19:15:00,2023-06-11 11:00:00,Vehicle Theft,379,Tamil Nadu,Chennai,T. Nagar,13.0418,80.2341,Motorcycle stolen from residential street
+INC008,2023-06-22 17:30:00,2023-06-22 19:45:00,Physical Assault,323,West Bengal,Kolkata,Salt Lake,22.5867,88.4178,Physical altercation after road rage incident
+INC009,2023-07-04 12:00:00,2023-07-04 14:15:00,Pickpocketing,379,Telangana,Hyderabad,Charminar,17.3616,78.4747,Wallet stolen in crowded market area
+INC010,2023-07-15 22:30:00,2023-07-16 08:00:00,Snatching,379,Rajasthan,Jaipur,C-Scheme,26.9124,75.7873,Chain snatching on poorly lit corner
+INC011,2023-08-01 10:00:00,2023-08-01 15:30:00,Cheating,420,Delhi,New Delhi,Connaught Place,28.6315,77.2167,Financial fraud via fraudulent vendor
+INC012,2023-08-11 20:45:00,2023-08-12 10:00:00,Harassment,354A,Maharashtra,Pune,Shivajinagar,18.5308,73.8475,Stalking incident reported outside college campus
+INC013,2023-08-20 00:00:00,2023-08-21 12:00:00,Housebreaking,458,Uttar Pradesh,Lucknow,Gomti Nagar,26.8467,80.9462,House lock broken while residents away
+INC014,2023-09-05 16:00:00,2023-09-05 18:00:00,General Theft,379,Delhi,Central Delhi,Paharganj,,,Missing telemetry - coordinate GPS failure
+INC015,2023-09-12 21:00:00,2023-09-13 09:30:00,Assault,324,Gujarat,Ahmedabad,Navrangpura,23.0365,72.5611,Minor injury inflicted with blunt instrument
+INC016,2023-09-25 11:30:00,2023-09-25 13:00:00,Mobile Theft,379,Delhi,North Delhi,Civil Lines,0.0,0.0,Invalid Null Island zero coordinates
+INC017,2023-10-02 18:00:00,2023-10-02 22:00:00,Snatching,379,Punjab,Ludhiana,Civil Lines,30.9010,75.8573,District centroid only - recorded at headquarters
+INC018,2023-10-15 14:00:00,2023-10-15 16:30:00,Cyber Fraud,420,Karnataka,Bengaluru Urban,Whitefield,12.9698,77.7499,Online banking phishing victim
+INC019,2023-11-01 23:45:00,2023-11-02 09:00:00,Burglary,457,Delhi,East Delhi,Preet Vihar,28.6367,77.2917,Commercial shop broken into overnight
+INC020,2023-11-20 19:15:00,2023-11-20 20:30:00,Dacoity,395,Bihar,Patna,Kankarbagh,25.5941,85.1376,Armed group robbery near railway siding
+

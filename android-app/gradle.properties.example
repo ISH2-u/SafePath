@@ -1,0 +1,26 @@
+# ── SafePath AI Android Application — Sample Configuration ───────────────────────
+# Copy or merge these properties into your local gradle.properties:
+#
+# JVM & AndroidX Settings
+org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+android.useAndroidX=true
+android.enableJetifier=true
+android.dependency.useConstraints=false
+org.gradle.vfs.watch=false
+org.gradle.configuration-cache=false
+
+# ── Centralized Development API Configuration ──────────────────────────────────
+# Choose your connection mode:
+#
+# 1. Android Studio Emulator (Default):
+#    LAPTOP_IPV4_ADDRESS=10.0.2.2
+#
+# 2. Physical Android Phone on Wi-Fi / Mobile Hotspot:
+#    Run `ipconfig` (Windows) or `ifconfig` (Mac/Linux) and set to your machine's Wi-Fi IPv4:
+#    LAPTOP_IPV4_ADDRESS=192.168.x.x
+#
+# 3. Physical Android Phone via USB Cable with `adb reverse tcp:8000 tcp:8000`:
+#    LAPTOP_IPV4_ADDRESS=127.0.0.1
+# ─────────────────────────────────────────────────────────────────────────────────
+LAPTOP_IPV4_ADDRESS=10.0.2.2
+SERVER_PORT=8000

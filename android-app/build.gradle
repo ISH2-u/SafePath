@@ -1,0 +1,9 @@
+// Top-level build file — configuration for all sub-projects/modules.
+plugins {
+    id 'com.android.application' version '8.2.2' apply false
+    id 'com.google.gms.google-services' version '4.4.1' apply false
+}
+
+// Redirect build artifacts outside OneDrive to eliminate Windows file locking errors
+layout.buildDirectory.set(file("${System.getProperty('user.home')}/.android_builds/SafePathAI/root"))
+

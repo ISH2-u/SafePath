@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug Network Security Configuration:
+     Permits HTTP development traffic to local network / mobile hotspot addresses
+     (e.g., 10.x.x.x, 192.168.x.x, 172.16-31.x.x, 127.0.0.1, localhost, 10.0.2.2).
+     Active ONLY in debug builds; production releases use src/main/res/xml/network_security_config.xml (HTTPS only). -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
+

@@ -1,0 +1,8 @@
+## This file should NOT be checked into Version Control Systems.
+# Location of the SDK. On Windows:
+# sdk.dir=C\:\\Users\\<YourUsername>\\AppData\\Local\\Android\\Sdk
+# On Mac:
+# sdk.dir=/Users/<YourUsername>/Library/Android/sdk
+# On Linux:
+# sdk.dir=/home/<YourUsername>/Android/Sdk
+

@@ -1,0 +1,13 @@
+# Core FastAPI backend requirements (conflict-free for Windows & Python 3.10+)
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+pydantic-settings
+python-jose
+passlib
+bcrypt
+python-multipart
+httpx
+python-dotenv
+pytest

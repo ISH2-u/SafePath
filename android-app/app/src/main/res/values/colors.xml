@@ -1,0 +1,47 @@
+<resources>
+    <!-- Brand Colors -->
+    <color name="color_primary">#1E3A8A</color>
+    <color name="color_primary_dark">#172554</color>
+    <color name="color_primary_light">#3B82F6</color>
+    <color name="color_secondary">#0D9488</color>
+    <color name="color_secondary_dark">#115E59</color>
+    <color name="color_on_primary">#FFFFFF</color>
+    <color name="color_on_secondary">#FFFFFF</color>
+
+    <!-- Emergency Colors -->
+    <color name="color_sos_red">#DC2626</color>
+    <color name="color_sos_red_dark">#991B1B</color>
+    <color name="color_sos_text">#FFFFFF</color>
+
+    <!-- Surface Colors -->
+    <color name="color_background">#F0F4F8</color>
+    <color name="color_surface">#FFFFFF</color>
+    <color name="color_surface_variant">#E8EDF5</color>
+    <color name="color_on_surface">#0F172A</color>
+    <color name="color_on_surface_variant">#64748B</color>
+    <color name="color_divider">#E2E8F0</color>
+    <color name="color_outline_variant">#CBD5E1</color>
+
+    <!-- Status Colors -->
+    <color name="color_safe_green">#16A34A</color>
+    <color name="color_warning_yellow">#D97706</color>
+    <color name="color_danger_red">#DC2626</color>
+    <color name="color_inactive_grey">#94A3B8</color>
+
+    <!-- Area Risk Indicators -->
+    <color name="color_low_risk">#16A34A</color>
+    <color name="color_moderate_risk">#D97706</color>
+    <color name="color_high_risk">#DC2626</color>
+    <color name="color_insufficient_data">#64748B</color>
+
+    <!-- Nav Colors -->
+    <color name="nav_selected">#1E3A8A</color>
+    <color name="nav_unselected">#94A3B8</color>
+
+    <!-- Splash -->
+    <color name="color_splash_background">#1E3A8A</color>
+
+    <!-- Alias for SOS / danger color used in delete/warning UI -->
+    <color name="safety_critical">#DC2626</color>
+</resources>
+

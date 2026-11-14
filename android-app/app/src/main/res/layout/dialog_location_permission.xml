@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Icon -->
+    <ImageView
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:src="@drawable/ic_location"
+        app:tint="@color/color_primary"
+        android:contentDescription="Location Permission Icon" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Location Permission Required"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/color_on_surface"
+        android:gravity="center"
+        android:layout_marginBottom="12dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="SafePath AI requires location access to monitor your journey safety, record breadcrumb routes, and allow immediate SOS dispatch with your exact coordinates.\n\n• Location is ONLY tracked during active journeys you manually start.\n• Tracking stops immediately when you end the journey.\n• SafePath AI NEVER shares your location with strangers or authorities without your direct SOS trigger."
+        android:textSize="13sp"
+        android:lineSpacingExtra="3dp"
+        android:textColor="@color/color_on_surface_variant"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDenyLocationPermission"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginRight="8dp"
+            android:text="Not Now"
+            app:cornerRadius="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnGrantLocationPermission"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Grant Access"
+            app:cornerRadius="8dp" />
+    </LinearLayout>
+
+</LinearLayout>
+

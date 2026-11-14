@@ -1,0 +1,106 @@
+<resources>
+    <string name="app_name">SafePath AI</string>
+    <string name="app_tagline">Production-Grade Personal Safety Guardian</string>
+
+    <!-- Navigation Labels -->
+    <string name="nav_home">Home</string>
+    <string name="nav_map">Map &amp; Risk</string>
+    <string name="nav_journey">Journey</string>
+    <string name="nav_contacts">Contacts</string>
+    <string name="nav_sos">SOS</string>
+    <string name="nav_assistant">Assistant</string>
+    <string name="nav_profile">Profile</string>
+    <string name="nav_settings">Settings</string>
+    <string name="nav_voice_codeword">Voice Codeword</string>
+
+    <!-- Strict Safety Rule Warning -->
+    <string name="strict_safety_rule_notice">STRICT PRIVACY POLICY: Emergency notifications are sent ONLY to your verified emergency contacts. SafePath AI NEVER broadcasts to police, authorities, or strangers.</string>
+
+    <!-- Permission Explanations -->
+    <string name="perm_location_explanation">Precise background location is required to track your journey and accurately broadcast coordinates during an emergency SOS.</string>
+    <string name="perm_mic_explanation">Microphone access is used strictly on-device to listen for your secret safety codeword. Audio is never recorded, saved, or uploaded.</string>
+    <string name="perm_grant_button">Grant Permission</string>
+    <string name="perm_granted">Permission Active</string>
+    <string name="perm_denied">Permission Denied (Tap to fix)</string>
+
+    <!-- Demonstration Data Disclaimers -->
+    <string name="demo_data_badge">[DEMO DATA ONLY]</string>
+    <string name="demo_data_disclaimer">Notice: Below information is sample data for interface demonstration. Connect backend for real-time telemetry.</string>
+
+    <!-- Auth -->
+    <string name="login_title">Welcome Back</string>
+    <string name="login_subtitle">Sign in to activate your personal safety shield</string>
+    <string name="register_title">Create SafePath Account</string>
+    <string name="register_subtitle">Register with your verified email and primary contact</string>
+    <string name="email_hint">Email address</string>
+    <string name="password_hint">Password (min 8 chars)</string>
+    <string name="confirm_password_hint">Confirm password</string>
+    <string name="full_name_hint">Full name</string>
+    <string name="phone_hint">Phone number with country code</string>
+    <string name="btn_login">Sign In</string>
+    <string name="btn_register">Create Safe Account</string>
+    <string name="prompt_have_account">Already have an account? Sign In</string>
+    <string name="prompt_need_account">Don\'t have an account? Register</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_greeting">Personal Safety Dashboard</string>
+    <string name="dashboard_status_protected">Status: System Active &amp; Protected</string>
+    <string name="quick_sos">TRIGGER EMERGENCY SOS</string>
+    <string name="card_location_title">Current Location</string>
+    <string name="card_journey_title">Journey Status</string>
+    <string name="card_risk_title">Area Safety Assessment</string>
+    <string name="card_contacts_title">Emergency Contacts Status</string>
+    <string name="card_mic_title">Codeword Voice Monitoring</string>
+
+    <!-- Journey Screen -->
+    <string name="journey_title">Safe Journey Tracking</string>
+    <string name="journey_destination_hint">Where are you heading?</string>
+    <string name="journey_start_btn">Start Protected Journey</string>
+    <string name="journey_stop_btn">End Journey Safely</string>
+    <string name="journey_checkin_timer">Safety check-in required in: 14m 32s</string>
+    <string name="journey_sharing_toggle">Live location streaming to contacts</string>
+
+    <!-- Map & Risk Screen -->
+    <string name="map_screen_title">Safety Map &amp; Risk Zones</string>
+    <string name="map_risk_level_label">Area Risk Level:</string>
+    <string name="map_low_risk">Low Risk (Well-lit, high pedestrian density)</string>
+    <string name="map_moderate_risk">Moderate Risk (Reduced visibility, sparse footfall)</string>
+    <string name="map_high_risk">Elevated Risk (Isolated corridor, exercise caution)</string>
+
+    <!-- Emergency Contacts Screen -->
+    <string name="contacts_screen_title">Verified Emergency Contacts</string>
+    <string name="contacts_verified_badge">VERIFIED CONTACT</string>
+    <string name="contacts_pending_badge">VERIFICATION PENDING</string>
+    <string name="btn_add_contact">Add New Emergency Contact</string>
+
+    <!-- SOS Screen -->
+    <string name="sos_screen_title">EMERGENCY SOS</string>
+    <string name="sos_countdown_label">Alert dispatches to verified contacts in:</string>
+    <string name="sos_cancel_btn">CANCEL EMERGENCY ALERT</string>
+    <string name="sos_silent_label">Silent Mode (No siren sound)</string>
+
+    <!-- Voice Codeword Screen -->
+    <string name="voice_codeword_title">Secret Voice Codeword</string>
+    <string name="voice_codeword_hint">e.g., SafePath Red</string>
+    <string name="voice_codeword_instruction">Choose a distinctive phrase you can speak naturally under distress to activate emergency alerts silently.</string>
+    <string name="voice_test_btn">Test Voice Codeword</string>
+    <string name="voice_save_btn">Save Voice Codeword</string>
+
+    <!-- Safety Assistant Screen -->
+    <string name="assistant_title">AI Safety Assistant</string>
+    <string name="assistant_greeting">Hello! I am your SafePath AI guardian. How can I assist your safety today?</string>
+    <string name="assistant_prompt_route">Is my current route well-lit and safe?</string>
+    <string name="assistant_prompt_fake_call">Simulate an incoming phone call</string>
+    <string name="assistant_prompt_contacts">Notify my contacts I feel uncomfortable</string>
+
+    <!-- Profile Screen -->
+    <string name="profile_title">User Safety Profile</string>
+    <string name="profile_medical_notes">Medical / Allergy Notes for First Responders</string>
+    <string name="profile_blood_group">Blood Group: O+ (Demo)</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Settings &amp; Privacy Controls</string>
+    <string name="settings_biometric_lock">Require Biometric Authentication on Launch</string>
+    <string name="settings_location_accuracy">High-Accuracy GPS Mode</string>
+    <string name="settings_auto_sms">Auto-Send SMS on Low Battery</string>
+</resources>

@@ -1,0 +1,6 @@
+# Production requirements with PostgreSQL and Firebase Admin
+-r requirements.txt
+alembic
+psycopg2-binary
+firebase-admin
+

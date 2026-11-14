@@ -1,0 +1,59 @@
+name: SafePath AI CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  backend-test:
+    name: Backend API Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest httpx
+
+      - name: Run Backend Pytest Suite
+        working-directory: ./backend
+        env:
+          DATABASE_URL: sqlite:///./ci_test.db
+          SECRET_KEY: ci_temporary_test_secret_key_32_bytes_min!
+          DEBUG: "true"
+        run: |
+          pytest -v
+
+  ml-test:
+    name: ML Risk Engine Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install ML Dependencies
+        working-directory: ./ml-risk
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run ML Unit Tests
+        working-directory: ./ml-risk
+        run: |
+          pytest -v tests/

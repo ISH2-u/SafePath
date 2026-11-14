@@ -1,0 +1,63 @@
+# ───────────────── SafePath AI — .gitignore ─────────────────────────────────
+
+# Android / Gradle
+*.iml
+.gradle/
+**/.gradle/
+.idea/
+local.properties
+*.jks
+*.keystore
+google-services.json
+build/
+app/build/
+**/build/
+.android_builds/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+
+# Backend — Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.so
+.env
+*.env
+*.log
+logs/
+.venv/
+venv/
+env/
+dist/
+*.egg-info/
+.eggs/
+htmlcov/
+.coverage
+.pytest_cache/
+
+# Local databases (contain user data or session state)
+*.db
+*.sqlite
+*.sqlite3
+safepath.db
+backend/safepath.db
+
+# Firebase credentials — NEVER commit
+firebase-credentials.json
+*-firebase-adminsdk-*.json
+
+# Docker
+postgres_data/
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+*.swp
+
