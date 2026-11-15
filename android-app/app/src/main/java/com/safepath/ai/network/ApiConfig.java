@@ -42,11 +42,27 @@ public final class ApiConfig {
         String host = getHost();
         String port = getPort();
 
+        // If a full custom URL or protocol scheme was entered at runtime:
+        if (host != null && (host.startsWith("http://") || host.startsWith("https://"))) {
+            String url = host.trim();
+            if (!url.endsWith("/")) url += "/";
+            if (!url.contains("/api/v1/")) url += "api/v1/";
+            return url;
+        }
+
         if (!BuildConfig.DEBUG) {
             String prodUrl = BuildConfig.API_BASE_URL;
             if (prodUrl != null && !prodUrl.isEmpty()) {
                 return prodUrl.endsWith("/") ? prodUrl : prodUrl + "/";
             }
+        }
+
+        // Standard HTTP/HTTPS ports without explicit port numbers
+        if ("80".equals(port)) {
+            return "http://" + host + "/api/v1/";
+        }
+        if ("443".equals(port)) {
+            return "https://" + host + "/api/v1/";
         }
 
         return "http://" + host + ":" + port + "/api/v1/";

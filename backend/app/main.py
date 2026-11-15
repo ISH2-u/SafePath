@@ -42,10 +42,9 @@ def on_startup():
         logging.getLogger("uvicorn.error").warning(f"Database table check: {e}")
 
 # ─── CORS ────────────────────────────────────────────────────────────────────
-# In production, replace "*" with your Android app's exact domain / scheme
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -56,14 +55,25 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/health", tags=["Health"], summary="Service health check")
-def health_check():
+def health_check(check_db: bool = False):
     """Health-check endpoint confirming that the backend is running.
     Does not expose sensitive credentials, keys, or database passwords."""
-    return {
+    response = {
         "status": "healthy",
         "service": "SafePath AI Backend",
-        "version": "1.0.0"
+        "version": "1.0.0",
+        "environment": settings.ENVIRONMENT
     }
+    if check_db:
+        try:
+            from sqlalchemy import text
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            response["database"] = "connected"
+        except Exception as e:
+            response["database"] = "error"
+            response["status"] = "degraded"
+    return response
 
 
 @app.get("/", tags=["Root"])

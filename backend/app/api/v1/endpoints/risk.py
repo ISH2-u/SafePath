@@ -2,6 +2,7 @@ from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import Optional
 import hashlib
 from app.schemas.risk import AreaRiskResponse
+from app.services.ml_risk_service import predict_area_risk
 
 router = APIRouter()
 
@@ -45,30 +46,42 @@ def get_area_risk(
     grid_lng = round(lng, 2)
     cell_id = f"cell_{grid_lat}_{grid_lng}"
 
-    # Stable spatial hash partition
-    h = int(hashlib.md5(f"{grid_lat}_{grid_lng}".encode()).hexdigest(), 16) % 100
-
-    if h < 45:
-        risk_class = 0
-        risk_label = "Low relative recorded activity"
-        risk_code = "LOW"
-        color = "#16A34A"
-        conf = 0.82
-        guidance = "Historical records show low relative incidence. Exercise standard personal vigilance."
-    elif h < 80:
-        risk_class = 1
-        risk_label = "Moderate relative recorded activity"
-        risk_code = "MODERATE"
-        color = "#D97706"
-        conf = 0.76
-        guidance = "Moderate historical activity recorded. Prefer well-traveled, lit thoroughfares."
+    # 3. Check if trained ML risk model is available; otherwise use spatial baseline
+    ml_result = predict_area_risk(lat, lng, radius_km)
+    if ml_result:
+        risk_class = ml_result["risk_class"]
+        risk_label = ml_result["risk_label"]
+        risk_code = ml_result["risk_code"]
+        color = ml_result["color"]
+        conf = ml_result["confidence"]
+        guidance = ml_result["guidance"]
+        data_period = "SafePath AI Calibrated Risk Model"
     else:
-        risk_class = 2
-        risk_label = "High relative recorded activity"
-        risk_code = "HIGH"
-        color = "#DC2626"
-        conf = 0.84
-        guidance = "Elevated historical incidence. Avoid isolated paths, keep emergency contacts informed."
+        # Stable spatial hash partition fallback
+        h = int(hashlib.md5(f"{grid_lat}_{grid_lng}".encode()).hexdigest(), 16) % 100
+
+        if h < 45:
+            risk_class = 0
+            risk_label = "Low relative recorded activity"
+            risk_code = "LOW"
+            color = "#16A34A"
+            conf = 0.82
+            guidance = "Historical records show low relative incidence. Exercise standard personal vigilance."
+        elif h < 80:
+            risk_class = 1
+            risk_label = "Moderate relative recorded activity"
+            risk_code = "MODERATE"
+            color = "#D97706"
+            conf = 0.76
+            guidance = "Moderate historical activity recorded. Prefer well-traveled, lit thoroughfares."
+        else:
+            risk_class = 2
+            risk_label = "High relative recorded activity"
+            risk_code = "HIGH"
+            color = "#DC2626"
+            conf = 0.84
+            guidance = "Elevated historical incidence. Avoid isolated paths, keep emergency contacts informed."
+        data_period = "Historical 2019-2023 Police Station Aggregates"
 
     return AreaRiskResponse(
         latitude=lat,
@@ -80,7 +93,7 @@ def get_area_risk(
         risk_code=risk_code,
         color_indicator=color,
         confidence_score=conf,
-        data_period="Historical 2019-2023 Police Station Aggregates",
+        data_period=data_period,
         last_updated="2024-03-01T00:00:00Z",
         incident_summary=f"Historical relative activity level: {risk_label}.",
         safety_guidance=guidance,

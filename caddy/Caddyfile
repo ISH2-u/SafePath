@@ -1,0 +1,47 @@
+# SafePath AI — Production Caddy Reverse Proxy Configuration
+# Automated HTTPS (Let's Encrypt / ZeroSSL), Security Headers, and Reverse Proxy
+
+{
+    # Global options
+    email {$ACME_EMAIL:admin@safepath.ai}
+    # Log formatted as JSON for structured log aggregation
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+}
+
+{$DOMAIN::80} {
+    # ── Strict Security Headers ─────────────────────────────────────────────────
+    header {
+        # Enable HSTS (HTTP Strict Transport Security) with 1-year max-age
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # Prevent MIME-type sniffing
+        X-Content-Type-Options "nosniff"
+        # Clickjacking mitigation
+        X-Frame-Options "DENY"
+        # Legacy XSS filtering
+        X-XSS-Protection "1; mode=block"
+        # Referrer privacy policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Prevent server identification
+        -Server
+    }
+
+    # ── Gzip / Zstandard Compression ───────────────────────────────────────────
+    encode zstd gzip
+
+    # ── Reverse Proxy to Backend API ───────────────────────────────────────────
+    reverse_proxy backend:8000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+
+        # Health check against backend
+        health_uri /health
+        health_interval 15s
+        health_timeout 5s
+    }
+}
