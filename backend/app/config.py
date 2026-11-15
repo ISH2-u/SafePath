@@ -1,5 +1,6 @@
 import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
 from typing import Optional, List
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -17,6 +18,13 @@ class Settings(BaseSettings):
 
     # Database: Defaults to SQLite for zero-config instant local setup
     DATABASE_URL: str = "sqlite:///./safepath.db"
+
+    @field_validator("DATABASE_URL", mode="after")
+    @classmethod
+    def normalize_db_url(cls, v: str) -> str:
+        if v and v.startswith("postgres://"):
+            return "postgresql://" + v[len("postgres://"):]
+        return v
 
     # JWT
     SECRET_KEY: str = "safepath_super_secret_local_dev_key_32bytes_min"
