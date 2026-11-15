@@ -32,6 +32,7 @@ public final class ServerDialogHelper {
                 "USB Debugging (127.0.0.1:8000 via adb reverse)",
                 "Android Emulator (10.0.2.2:8000)",
                 "Wi-Fi LAN / Custom Computer IP",
+                "☁️ Oracle Cloud / Remote Server URL",
                 "⚡ Test Current Server Connection"
         };
 
@@ -49,10 +50,34 @@ public final class ServerDialogHelper {
                     } else if (which == 2) {
                         showCustomHostDialog(context, listener);
                     } else if (which == 3) {
+                        showCloudUrlDialog(context, listener);
+                    } else if (which == 4) {
                         testConnection(context, ApiConfig.getBaseUrl());
                     }
                 })
                 .setNegativeButton("Close", null)
+                .show();
+    }
+
+    private static void showCloudUrlDialog(Context context, OnServerChangedListener listener) {
+        final EditText input = new EditText(context);
+        input.setHint("e.g. https://safepath.yourdomain.com");
+        input.setText(ApiConfig.getBaseUrl());
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle("Enter Oracle Cloud / Server URL")
+                .setMessage("Enter your OCI domain or public HTTPS endpoint:")
+                .setView(input)
+                .setPositiveButton("Save", (d, w) -> {
+                    String url = input.getText().toString().trim();
+                    if (!url.isEmpty()) {
+                        ApiConfig.setServer(context, url, "");
+                        Toast.makeText(context, "Server updated: " + ApiConfig.getBaseUrl(), Toast.LENGTH_SHORT).show();
+                        if (listener != null) listener.onServerChanged(ApiConfig.getBaseUrl());
+                    }
+                })
+                .setNegativeButton("Cancel", null)
                 .show();
     }
 

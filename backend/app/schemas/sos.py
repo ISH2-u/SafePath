@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -41,5 +41,4 @@ class SosEventOut(BaseModel):
     is_idempotent_replay: bool = False
     disclaimer: str = "Emergency notification sent exclusively to user-verified contacts. Authorities and strangers were not alerted."
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

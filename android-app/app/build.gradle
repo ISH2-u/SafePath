@@ -9,9 +9,10 @@ android {
     namespace 'com.safepath.ai'
     compileSdk 34
 
-    // Centralized development server configuration from gradle.properties
-    def devServerIp = project.findProperty("LAPTOP_IPV4_ADDRESS") ?: "10.0.2.2"
+    // Centralized server configuration from gradle.properties or command line (-P)
+    def devServerIp = project.findProperty("LAPTOP_IPV4_ADDRESS") ?: "127.0.0.1"
     def devServerPort = project.findProperty("SERVER_PORT") ?: "8000"
+    def prodApiUrl = project.findProperty("PROD_API_BASE_URL") ?: "https://api.safepath.ai/api/v1/"
 
     defaultConfig {
         applicationId "com.safepath.ai"
@@ -38,7 +39,7 @@ android {
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             // Production strictly enforces secure HTTPS
-            buildConfigField "String", "API_BASE_URL", "\"https://api.safepath.ai/api/v1/\""
+            buildConfigField "String", "API_BASE_URL", "\"${prodApiUrl}\""
         }
     }
 

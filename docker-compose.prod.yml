@@ -1,0 +1,124 @@
+version: '3.8'
+
+# SafePath AI — Production Docker Compose (OCI Always Free ARM64 / AMD64)
+# Enforces:
+# - Strict isolation (PostgreSQL is NOT exposed to the public host or internet)
+# - Automated Let's Encrypt HTTPS reverse proxy via Caddy
+# - Health-checked service dependency graph
+# - Container log rotation (prevents disk exhaustion on cloud VMs)
+# - Persistent storage volumes for database, TLS certificates, and ML model weights
+
+networks:
+  safepath_internal:
+    driver: bridge
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: safepath_prod_db
+    restart: unless-stopped
+    networks:
+      - safepath_internal
+    # PostgreSQL is deliberately NOT exposed to host ports for production security
+    expose:
+      - "5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: safepath_prod_backend
+    restart: unless-stopped
+    networks:
+      - safepath_internal
+    depends_on:
+      db:
+        condition: service_healthy
+    # Internal exposure only; external access managed exclusively through reverse proxy
+    expose:
+      - "8000"
+    env_file:
+      - .env.prod
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      ENVIRONMENT: production
+      DEBUG: "false"
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+    volumes:
+      - app_models:/app/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  reverse-proxy:
+    image: caddy:2-alpine
+    container_name: safepath_prod_proxy
+    restart: unless-stopped
+    networks:
+      - safepath_internal
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-:80}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@safepath.ai}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+volumes:
+  postgres_data:
+    name: safepath_prod_postgres_data
+  caddy_data:
+    name: safepath_prod_caddy_data
+  caddy_config:
+    name: safepath_prod_caddy_config
+  app_models:
+    name: safepath_prod_app_models

@@ -1,6 +1,10 @@
-# Production requirements with PostgreSQL and Firebase Admin
+# Production requirements with PostgreSQL, Firebase Admin, and ML Inference
 -r requirements.txt
-alembic
-psycopg2-binary
-firebase-admin
+alembic>=1.13.0
+psycopg2-binary>=2.9.9
+firebase-admin>=6.4.0
+scikit-learn>=1.3.0
+joblib>=1.3.0
+numpy>=1.24.0
+
 
