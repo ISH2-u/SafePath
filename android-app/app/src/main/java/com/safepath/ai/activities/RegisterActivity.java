@@ -67,7 +67,10 @@ public class RegisterActivity extends AppCompatActivity {
 
         TextView tvServerEndpoint = findViewById(R.id.tvServerEndpoint);
         if (tvServerEndpoint != null) {
-            tvServerEndpoint.setText("Server: " + ApiConfig.getBaseUrl());
+            tvServerEndpoint.setText("Server: " + ApiConfig.getBaseUrl() + " (tap to configure)");
+            tvServerEndpoint.setOnClickListener(v ->
+                    com.safepath.ai.utils.ServerDialogHelper.show(this, newUrl ->
+                            tvServerEndpoint.setText("Server: " + newUrl + " (tap to configure)")));
         }
 
         // ViewModel
@@ -81,6 +84,7 @@ public class RegisterActivity extends AppCompatActivity {
             }
             if (btnRegister != null) {
                 btnRegister.setEnabled(!Boolean.TRUE.equals(loading));
+                btnRegister.setText(Boolean.TRUE.equals(loading) ? "Registering..." : getString(R.string.btn_register));
             }
         });
 

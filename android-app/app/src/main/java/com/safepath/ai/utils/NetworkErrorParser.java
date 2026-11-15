@@ -44,9 +44,10 @@ public final class NetworkErrorParser {
         if (t instanceof ConnectException) {
             return "Cannot reach SafePath backend at http://" + host + ":" + port
                     + ".\n\nTroubleshooting:\n"
-                    + "• Ensure FastAPI backend is running on your laptop (`python run.py`).\n"
-                    + "• Verify phone and laptop are on the same mobile hotspot / Wi-Fi network.\n"
-                    + "• Ensure Windows Firewall is allowing incoming connections on port " + port + ".";
+                    + "• For USB testing: run `adb reverse tcp:8000 tcp:8000`.\n"
+                    + "• Ensure FastAPI backend is running on your computer (`python run.py`).\n"
+                    + "• For Wi-Fi testing: verify phone and computer are on the same network.\n"
+                    + "• Tap the server badge above to test or switch connection mode.";
         }
 
         if (t instanceof SocketTimeoutException) {

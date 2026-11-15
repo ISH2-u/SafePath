@@ -20,7 +20,15 @@
     <color name="color_on_surface">#0F172A</color>
     <color name="color_on_surface_variant">#64748B</color>
     <color name="color_divider">#E2E8F0</color>
+    <color name="color_outline">#94A3B8</color>
     <color name="color_outline_variant">#CBD5E1</color>
+
+    <!-- Authentication & Input Field Colors -->
+    <color name="color_input_background">#FFFFFF</color>
+    <color name="color_input_text">#0F172A</color>
+    <color name="color_input_hint">#64748B</color>
+    <color name="color_input_stroke">#CBD5E1</color>
+    <color name="color_input_stroke_focused">#1E3A8A</color>
 
     <!-- Status Colors -->
     <color name="color_safe_green">#16A34A</color>

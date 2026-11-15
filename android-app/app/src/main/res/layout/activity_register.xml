@@ -46,9 +46,12 @@
             android:id="@+id/tvServerEndpoint"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="6dp"
             android:textSize="11sp"
-            android:textColor="@color/color_outline"
+            android:textColor="@color/color_primary"
+            android:background="@drawable/bg_endpoint_badge"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp"
             android:gravity="center" />
 
         <!-- Error message -->
@@ -65,7 +68,7 @@
         <!-- Full Name -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilFullName"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            style="@style/Widget.SafePath.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
@@ -73,17 +76,17 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etFullName"
+                style="@style/Widget.SafePath.TextInputEditText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textPersonName"
-                android:minHeight="48dp"
                 android:imeOptions="actionNext" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Email -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilEmail"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            style="@style/Widget.SafePath.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
@@ -91,17 +94,17 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etEmail"
+                style="@style/Widget.SafePath.TextInputEditText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textEmailAddress"
-                android:minHeight="48dp"
                 android:imeOptions="actionNext" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Phone -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilPhone"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            style="@style/Widget.SafePath.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
@@ -109,17 +112,17 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etPhone"
+                style="@style/Widget.SafePath.TextInputEditText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="phone"
-                android:minHeight="48dp"
                 android:imeOptions="actionNext" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Password -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilPassword"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            style="@style/Widget.SafePath.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
@@ -128,17 +131,17 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etPassword"
+                style="@style/Widget.SafePath.TextInputEditText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textPassword"
-                android:minHeight="48dp"
                 android:imeOptions="actionNext" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Confirm Password -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilConfirmPassword"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            style="@style/Widget.SafePath.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
@@ -147,10 +150,10 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etConfirmPassword"
+                style="@style/Widget.SafePath.TextInputEditText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textPassword"
-                android:minHeight="48dp"
                 android:imeOptions="actionDone" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -160,6 +163,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
+            android:indeterminateTint="@color/color_primary"
             android:visibility="gone" />
 
         <!-- Register button -->
