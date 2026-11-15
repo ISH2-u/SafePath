@@ -17,19 +17,20 @@ public class RetrofitClient {
     private final Retrofit retrofit;
 
     private RetrofitClient() {
-        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-        logging.setLevel(BuildConfig.DEBUG
-                ? HttpLoggingInterceptor.Level.BODY
-                : HttpLoggingInterceptor.Level.NONE);
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
+                .connectTimeout(60, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS)
+                .writeTimeout(60, TimeUnit.SECONDS);
 
-        OkHttpClient client = new OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(15, TimeUnit.SECONDS)
-                .writeTimeout(15, TimeUnit.SECONDS)
-                .addInterceptor(new DevFallbackInterceptor())
-                .addInterceptor(logging)
-                .addInterceptor(new AuthInterceptor())
-                .build();
+        if (BuildConfig.DEBUG) {
+            HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
+            logging.setLevel(HttpLoggingInterceptor.Level.BODY);
+            clientBuilder.addInterceptor(new DevFallbackInterceptor());
+            clientBuilder.addInterceptor(logging);
+        }
+
+        clientBuilder.addInterceptor(new AuthInterceptor());
+        OkHttpClient client = clientBuilder.build();
 
         retrofit = new Retrofit.Builder()
                 .baseUrl(ApiConfig.getBaseUrl())
