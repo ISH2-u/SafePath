@@ -9,10 +9,10 @@ def test_model_training_and_insufficient_data_guardrail():
 
     feature_cols = ["f1", "f2"]
     X = pd.DataFrame({
-        "f1": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
-        "f2": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+        "f1": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0],
+        "f2": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
     })
-    y = pd.Series([0, 0, 1, 1, 2, 2])
+    y = pd.Series([0, 0, 0, 1, 1, 1, 2, 2, 2])
 
     model.fit(X, y, feature_cols)
     assert model.is_fitted is True
