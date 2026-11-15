@@ -55,5 +55,7 @@ jobs:
 
       - name: Run ML Unit Tests
         working-directory: ./ml-risk
+        env:
+          PYTHONPATH: .
         run: |
-          pytest -v tests/
+          python -m pytest -v tests/
