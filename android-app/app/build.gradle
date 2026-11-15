@@ -35,6 +35,7 @@ android {
             buildConfigField "String", "API_BASE_URL", "\"http://${devServerIp}:${devServerPort}/api/v1/\""
         }
         release {
+            signingConfig signingConfigs.debug
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'

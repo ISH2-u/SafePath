@@ -30,7 +30,8 @@ target_metadata = Base.metadata
 
 def get_database_url() -> str:
     url = os.environ.get("DATABASE_URL") or settings.DATABASE_URL
-    # For SQLite URLs under relative paths, resolve relative to BASE_DIR if needed
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://"):]
     return url
 
 # other values from the config, defined by the needs of env.py,
