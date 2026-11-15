@@ -1,10 +1,12 @@
 package com.safepath.ai.fragments;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,6 +30,8 @@ import com.safepath.ai.viewmodels.RiskViewModel;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.maplibre.android.MapLibre;
+import org.maplibre.android.annotations.Marker;
+import org.maplibre.android.annotations.MarkerOptions;
 import org.maplibre.android.camera.CameraPosition;
 import org.maplibre.android.camera.CameraUpdateFactory;
 import org.maplibre.android.geometry.LatLng;
@@ -49,7 +53,7 @@ import java.util.Locale;
 
 /**
  * MapFragment — OpenStreetMap integration via MapLibre, displaying user GPS telemetry,
- * active journey polyline routing, and real-time historical area risk estimations (PROMPT 8).
+ * active journey polyline routing, and real-time historical area risk estimations.
  */
 public class MapFragment extends Fragment implements OnMapReadyCallback {
 
@@ -77,6 +81,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     private MapView mapView;
     private MapLibreMap mapLibreMap;
+    private Marker userMarker = null;
     private JourneyViewModel journeyViewModel;
     private RiskViewModel riskViewModel;
 
@@ -100,6 +105,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 Boolean coarse = result.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false);
                 if (Boolean.TRUE.equals(fine) || Boolean.TRUE.equals(coarse)) {
                     cardMapPermissionWarning.setVisibility(View.GONE);
+                    journeyViewModel.startLocationUpdates();
                 } else {
                     cardMapPermissionWarning.setVisibility(View.VISIBLE);
                 }
@@ -146,6 +152,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     }
 
     private void setupObservers() {
+        // Location telemetry observer
         journeyViewModel.getCurrentLocation().observe(getViewLifecycleOwner(), location -> {
             if (location != null) {
                 lastLocation = location;
@@ -164,9 +171,12 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                             "Approximate accuracy: ± %.1fm (Satellite Signal Degraded)", acc));
                 }
 
-                if (!isCameraInitialized && mapLibreMap != null) {
-                    centerCameraOn(location.getLatitude(), location.getLongitude(), 15.0);
-                    isCameraInitialized = true;
+                if (mapLibreMap != null) {
+                    updateUserMarker(location.getLatitude(), location.getLongitude());
+                    if (!isCameraInitialized) {
+                        centerCameraOn(location.getLatitude(), location.getLongitude(), 15.0);
+                        isCameraInitialized = true;
+                    }
                 }
 
                 // Query Area Risk from FastAPI backend
@@ -174,11 +184,57 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             }
         });
 
+        // Location tracking status observer
+        journeyViewModel.getLocationStatus().observe(getViewLifecycleOwner(), status -> {
+            if (status == null || getContext() == null) return;
+            switch (status) {
+                case IDLE:
+                    if (lastLocation == null) {
+                        tvMapCoords.setText("Location: Ready");
+                        tvMapRouteStatus.setText("IDLE");
+                        tvMapRouteStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_on_surface_variant));
+                    }
+                    break;
+                case ACQUIRING:
+                    if (lastLocation == null) {
+                        tvMapCoords.setText("Location: Acquiring GPS...");
+                        tvMapRouteStatus.setText("ACQUIRING");
+                        tvMapRouteStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_warning_yellow));
+                        tvMapAccuracyDisclosed.setText("Acquiring satellite lock...");
+                    }
+                    break;
+                case ACTIVE:
+                    boolean isTracking = Boolean.TRUE.equals(journeyViewModel.getIsTracking().getValue());
+                    tvMapRouteStatus.setText(isTracking ? "TRACKING" : "ACTIVE");
+                    tvMapRouteStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_safe_green));
+                    cardMapPermissionWarning.setVisibility(View.GONE);
+                    break;
+                case PERMISSION_REQUIRED:
+                    tvMapCoords.setText("Location Permission Required");
+                    tvMapRouteStatus.setText("NO PERMISSION");
+                    tvMapRouteStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_danger_red));
+                    cardMapPermissionWarning.setVisibility(View.VISIBLE);
+                    break;
+                case LOCATION_DISABLED:
+                    tvMapCoords.setText("Device GPS is Turned Off");
+                    tvMapRouteStatus.setText("LOCATION DISABLED");
+                    tvMapRouteStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_danger_red));
+                    tvMapAccuracyDisclosed.setText("Tap to open Location Settings and turn on GPS");
+                    break;
+                case ERROR:
+                    tvMapCoords.setText("Location Acquisition Error");
+                    tvMapRouteStatus.setText("ERROR");
+                    tvMapRouteStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_danger_red));
+                    break;
+            }
+        });
+
         journeyViewModel.getIsTracking().observe(getViewLifecycleOwner(), isTracking -> {
             boolean active = Boolean.TRUE.equals(isTracking);
-            tvMapRouteStatus.setText(active ? "TRACKING" : "IDLE");
-            tvMapRouteStatus.setTextColor(ContextCompat.getColor(requireContext(),
-                    active ? R.color.color_safe_green : R.color.color_on_surface_variant));
+            if (active) {
+                tvMapRouteStatus.setText("TRACKING");
+                tvMapRouteStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_safe_green));
+            }
         });
 
         journeyViewModel.getActiveJourney().observe(getViewLifecycleOwner(), journey -> {
@@ -187,7 +243,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             }
         });
 
-        // Area Risk Observer (PROMPT 8)
+        // Area Risk Observer
         riskViewModel.getAreaRisk().observe(getViewLifecycleOwner(), riskDto -> {
             if (riskDto != null) {
                 currentRisk = riskDto;
@@ -212,16 +268,29 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         });
     }
 
+    private void updateUserMarker(double lat, double lng) {
+        if (mapLibreMap == null) return;
+        LatLng pos = new LatLng(lat, lng);
+        if (userMarker == null) {
+            userMarker = mapLibreMap.addMarker(new MarkerOptions()
+                    .position(pos)
+                    .setTitle("Current Location")
+                    .setSnippet("You are here"));
+        } else {
+            userMarker.setPosition(pos);
+        }
+    }
+
     private void setupListeners(View root) {
         fabCenterLocation.setOnClickListener(v -> {
             if (lastLocation != null && mapLibreMap != null) {
                 centerCameraOn(lastLocation.getLatitude(), lastLocation.getLongitude(), 16.0);
             } else {
                 Toast.makeText(requireContext(), "Acquiring GPS location...", Toast.LENGTH_SHORT).show();
+                journeyViewModel.startLocationUpdates();
             }
         });
 
-        // Tap on risk card shows safety guidance dialog
         cardAreaRisk.setOnClickListener(v -> showRiskDetailsDialog());
 
         View btnEnable = root.findViewById(R.id.btnMapEnableLocation);
@@ -231,6 +300,12 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                     Manifest.permission.ACCESS_COARSE_LOCATION
             }));
         }
+
+        tvMapCoords.setOnClickListener(v -> {
+            if (journeyViewModel.getLocationStatus().getValue() == JourneyViewModel.LocationStatus.LOCATION_DISABLED) {
+                startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+            }
+        });
     }
 
     private void showRiskDetailsDialog() {
@@ -238,6 +313,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             Toast.makeText(requireContext(), "Area risk information loading...", Toast.LENGTH_SHORT).show();
             return;
         }
+
+        String lastUpdatedDate = currentRisk.lastUpdated != null && currentRisk.lastUpdated.length() >= 10
+                ? currentRisk.lastUpdated.substring(0, 10) : "Recent";
 
         String message = String.format(
                 "Classification: %s\n\n"
@@ -247,7 +325,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 currentRisk.riskCategory,
                 currentRisk.safetyGuidance,
                 currentRisk.dataPeriod,
-                currentRisk.lastUpdated.substring(0, 10),
+                lastUpdatedDate,
                 currentRisk.disclaimer
         );
 
@@ -276,6 +354,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             style.addLayer(routeLayer);
 
             if (lastLocation != null) {
+                updateUserMarker(lastLocation.getLatitude(), lastLocation.getLongitude());
                 centerCameraOn(lastLocation.getLatitude(), lastLocation.getLongitude(), 15.0);
                 isCameraInitialized = true;
             } else {
@@ -334,12 +413,21 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             cardMapPermissionWarning.setVisibility(View.VISIBLE);
         } else {
             cardMapPermissionWarning.setVisibility(View.GONE);
+            journeyViewModel.startLocationUpdates();
         }
     }
 
     @Override public void onStart() { super.onStart(); mapView.onStart(); }
-    @Override public void onResume() { super.onResume(); mapView.onResume(); }
-    @Override public void onPause() { super.onPause(); mapView.onPause(); }
+    @Override public void onResume() {
+        super.onResume();
+        mapView.onResume();
+        journeyViewModel.startLocationUpdates();
+    }
+    @Override public void onPause() {
+        super.onPause();
+        mapView.onPause();
+        journeyViewModel.stopLocationUpdates();
+    }
     @Override public void onStop() { super.onStop(); mapView.onStop(); }
     @Override public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -349,5 +437,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     @Override public void onDestroyView() {
         super.onDestroyView();
         mapView.onDestroy();
+        userMarker = null;
     }
 }

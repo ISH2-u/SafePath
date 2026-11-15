@@ -1,9 +1,11 @@
 package com.safepath.ai.fragments;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +18,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
+import com.google.android.material.button.MaterialButton;
 import com.safepath.ai.R;
 import com.safepath.ai.viewmodels.JourneyViewModel;
 import com.safepath.ai.viewmodels.RiskViewModel;
@@ -33,7 +36,7 @@ public class HomeFragment extends Fragment {
     private TextView tvJourneyBadge;
     private TextView tvJourneyDetail;
     private TextView tvRiskExplanation;
-    private View btnGrantLocationPermission;
+    private MaterialButton btnGrantLocationPermission;
 
     private JourneyViewModel journeyViewModel;
     private RiskViewModel riskViewModel;
@@ -43,9 +46,9 @@ public class HomeFragment extends Fragment {
                 Boolean fineLocation = result.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
                 Boolean coarseLocation = result.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false);
                 if (Boolean.TRUE.equals(fineLocation) || Boolean.TRUE.equals(coarseLocation)) {
-                    updateLocationPermissionState(true);
+                    journeyViewModel.startLocationUpdates();
                 } else {
-                    updateLocationPermissionState(false);
+                    checkPermissions();
                 }
             });
 
@@ -92,6 +95,71 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        // Observe Location tracking status states
+        journeyViewModel.getLocationStatus().observe(getViewLifecycleOwner(), status -> {
+            if (status == null || getContext() == null) return;
+            switch (status) {
+                case IDLE:
+                    if (journeyViewModel.getCurrentLocation().getValue() == null) {
+                        tvLocationPermissionStatus.setText("READY");
+                        tvLocationPermissionStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_on_surface_variant));
+                    }
+                    break;
+                case ACQUIRING:
+                    tvLocationPermissionStatus.setText("ACQUIRING");
+                    tvLocationPermissionStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_warning_yellow));
+                    if (tvLocationCoordinates != null && journeyViewModel.getCurrentLocation().getValue() == null) {
+                        tvLocationCoordinates.setText("Acquiring GPS fix... Satellite telemetry initializing.");
+                    }
+                    if (btnGrantLocationPermission != null) {
+                        btnGrantLocationPermission.setVisibility(View.GONE);
+                    }
+                    break;
+                case ACTIVE:
+                    tvLocationPermissionStatus.setText("ACTIVE");
+                    tvLocationPermissionStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_safe_green));
+                    if (btnGrantLocationPermission != null) {
+                        btnGrantLocationPermission.setVisibility(View.GONE);
+                    }
+                    break;
+                case PERMISSION_REQUIRED:
+                    tvLocationPermissionStatus.setText("PERMISSION NEEDED");
+                    tvLocationPermissionStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_warning_yellow));
+                    if (tvLocationCoordinates != null) {
+                        tvLocationCoordinates.setText("Location permission not yet granted. Tap below to enable GPS tracking.");
+                    }
+                    if (btnGrantLocationPermission != null) {
+                        btnGrantLocationPermission.setVisibility(View.VISIBLE);
+                        btnGrantLocationPermission.setText("Grant Location Permission");
+                        btnGrantLocationPermission.setOnClickListener(v -> locationPermissionLauncher.launch(new String[]{
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                        }));
+                    }
+                    break;
+                case LOCATION_DISABLED:
+                    tvLocationPermissionStatus.setText("GPS DISABLED");
+                    tvLocationPermissionStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_danger_red));
+                    if (tvLocationCoordinates != null) {
+                        tvLocationCoordinates.setText("Device location services are turned off. Please enable GPS in Android Settings.");
+                    }
+                    if (btnGrantLocationPermission != null) {
+                        btnGrantLocationPermission.setVisibility(View.VISIBLE);
+                        btnGrantLocationPermission.setText("Open Location Settings");
+                        btnGrantLocationPermission.setOnClickListener(v ->
+                                startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)));
+                    }
+                    break;
+                case ERROR:
+                    tvLocationPermissionStatus.setText("GPS ERROR");
+                    tvLocationPermissionStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_danger_red));
+                    if (tvLocationCoordinates != null) {
+                        tvLocationCoordinates.setText("Unable to receive GPS signals. Please verify device location settings.");
+                    }
+                    break;
+            }
+        });
+
         // Observe Journey status
         journeyViewModel.getIsTracking().observe(getViewLifecycleOwner(), isTracking -> {
             boolean tracking = Boolean.TRUE.equals(isTracking);
@@ -111,7 +179,7 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        // Observe Area Risk (PROMPT 8)
+        // Observe Area Risk
         riskViewModel.getAreaRisk().observe(getViewLifecycleOwner(), risk -> {
             if (risk != null && tvRiskExplanation != null) {
                 tvRiskExplanation.setText(String.format(
@@ -164,26 +232,28 @@ public class HomeFragment extends Fragment {
                 Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 || ContextCompat.checkSelfPermission(requireContext(),
                 Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
-        updateLocationPermissionState(hasLocation);
-    }
-
-    private void updateLocationPermissionState(boolean granted) {
-        if (tvLocationPermissionStatus == null || getContext() == null) return;
-        if (granted) {
-            tvLocationPermissionStatus.setText("ACTIVE");
-            tvLocationPermissionStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_safe_green));
-            if (btnGrantLocationPermission != null) {
-                btnGrantLocationPermission.setVisibility(View.GONE);
-            }
+        if (hasLocation) {
+            journeyViewModel.startLocationUpdates();
         } else {
-            tvLocationPermissionStatus.setText("PERMISSION NEEDED");
-            tvLocationPermissionStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_warning_yellow));
-            if (tvLocationCoordinates != null) {
-                tvLocationCoordinates.setText("Precise location is needed to broadcast coordinates during an SOS and monitor your safe route.");
+            if (tvLocationPermissionStatus != null) {
+                tvLocationPermissionStatus.setText("PERMISSION NEEDED");
+                tvLocationPermissionStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_warning_yellow));
             }
             if (btnGrantLocationPermission != null) {
                 btnGrantLocationPermission.setVisibility(View.VISIBLE);
             }
         }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        checkPermissions();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        journeyViewModel.stopLocationUpdates();
     }
 }

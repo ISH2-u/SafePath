@@ -17,6 +17,11 @@ public class SafePathApplication extends Application {
     public void onCreate() {
         super.onCreate();
         instance = this;
+        // Enforce consistent light theme across all devices
+        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
+                androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO);
+        // Initialize dynamic API configuration
+        com.safepath.ai.network.ApiConfig.init(this);
         // Kick off DB initialisation on background thread
         SafePathDatabase.getInstance(this);
         try {

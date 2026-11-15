@@ -1,34 +1,57 @@
 package com.safepath.ai.viewmodels;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Application;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.location.Location;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationAvailability;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
 import com.safepath.ai.models.Journey;
 import com.safepath.ai.repositories.JourneyRepository;
 import com.safepath.ai.services.LocationService;
 import java.util.Locale;
 
 /**
- * JourneyViewModel — Manages active GPS journey tracking state,
- * timer updates, location accuracy verification, and service communication.
+ * JourneyViewModel — Manages GPS telemetry acquisition, active journey tracking,
+ * location accuracy verification, and service communication.
  */
 public class JourneyViewModel extends AndroidViewModel {
+
+    private static final String TAG = "JourneyViewModel";
+
+    public enum LocationStatus {
+        IDLE,
+        ACQUIRING,
+        ACTIVE,
+        PERMISSION_REQUIRED,
+        LOCATION_DISABLED,
+        ERROR
+    }
 
     private final JourneyRepository repository;
 
     private final MutableLiveData<Location> currentLocation = new MutableLiveData<>(null);
+    private final MutableLiveData<LocationStatus> locationStatus = new MutableLiveData<>(LocationStatus.IDLE);
     private final MutableLiveData<Journey> activeJourney     = new MutableLiveData<>(null);
     private final MutableLiveData<Boolean> isTracking        = new MutableLiveData<>(false);
     private final MutableLiveData<String> accuracyText       = new MutableLiveData<>("GPS Offline / Waiting");
@@ -42,6 +65,10 @@ public class JourneyViewModel extends AndroidViewModel {
     private final Handler timerHandler = new Handler(Looper.getMainLooper());
     private Runnable timerRunnable;
     private long journeyStartTimestamp = 0;
+
+    private FusedLocationProviderClient fusedLocationClient;
+    private LocationCallback foregroundLocationCallback;
+    private boolean isForegroundRequesting = false;
 
     private final BroadcastReceiver locationReceiver = new BroadcastReceiver() {
         @Override
@@ -65,15 +92,8 @@ public class JourneyViewModel extends AndroidViewModel {
                 loc.setTime(time);
 
                 currentLocation.postValue(loc);
-
-                // STRICT: Explicitly disclose accuracy. Never claim exact when uncertain.
-                if (acc <= 8.0f) {
-                    accuracyText.postValue(String.format(Locale.getDefault(), "High Accuracy (± %.1fm)", acc));
-                } else if (acc <= 20.0f) {
-                    accuracyText.postValue(String.format(Locale.getDefault(), "Moderate (± %.1fm)", acc));
-                } else {
-                    accuracyText.postValue(String.format(Locale.getDefault(), "Approximate (± %.1fm - Satellite Obstruction)", acc));
-                }
+                locationStatus.postValue(LocationStatus.ACTIVE);
+                updateAccuracyDisclosure(acc);
 
                 // Increment waypoint count
                 Integer current = waypointCount.getValue();
@@ -84,6 +104,9 @@ public class JourneyViewModel extends AndroidViewModel {
                 gpsAvailable.postValue(available);
                 if (!available) {
                     accuracyText.postValue("GPS Signal Unavailable");
+                    if (currentLocation.getValue() == null) {
+                        locationStatus.postValue(LocationStatus.ACQUIRING);
+                    }
                 }
             }
         }
@@ -93,6 +116,7 @@ public class JourneyViewModel extends AndroidViewModel {
     public JourneyViewModel(@NonNull Application application) {
         super(application);
         this.repository = new JourneyRepository(application.getApplicationContext());
+        this.fusedLocationClient = LocationServices.getFusedLocationProviderClient(application);
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(LocationService.BROADCAST_LOCATION_UPDATE);
@@ -107,16 +131,123 @@ public class JourneyViewModel extends AndroidViewModel {
         checkExistingActiveJourney();
     }
 
-    public LiveData<Location> getCurrentLocation() { return currentLocation; }
-    public LiveData<Journey> getActiveJourney()     { return activeJourney; }
-    public LiveData<Boolean> getIsTracking()        { return isTracking; }
-    public LiveData<String> getAccuracyText()       { return accuracyText; }
-    public LiveData<String> getDurationText()       { return durationText; }
-    public LiveData<String> getDistanceText()       { return distanceText; }
-    public LiveData<Integer> getWaypointCount()     { return waypointCount; }
-    public LiveData<Boolean> getGpsAvailable()      { return gpsAvailable; }
-    public LiveData<String> getStatusMessage()      { return statusMessage; }
-    public LiveData<String> getErrorMessage()        { return errorMessage; }
+    public LiveData<Location> getCurrentLocation()     { return currentLocation; }
+    public LiveData<LocationStatus> getLocationStatus() { return locationStatus; }
+    public LiveData<Journey> getActiveJourney()         { return activeJourney; }
+    public LiveData<Boolean> getIsTracking()            { return isTracking; }
+    public LiveData<String> getAccuracyText()           { return accuracyText; }
+    public LiveData<String> getDurationText()           { return durationText; }
+    public LiveData<String> getDistanceText()           { return distanceText; }
+    public LiveData<Integer> getWaypointCount()         { return waypointCount; }
+    public LiveData<Boolean> getGpsAvailable()          { return gpsAvailable; }
+    public LiveData<String> getStatusMessage()          { return statusMessage; }
+    public LiveData<String> getErrorMessage()            { return errorMessage; }
+
+    public void updateAccuracyDisclosure(float acc) {
+        if (acc <= 8.0f) {
+            accuracyText.postValue(String.format(Locale.getDefault(), "High Accuracy (± %.1fm)", acc));
+        } else if (acc <= 20.0f) {
+            accuracyText.postValue(String.format(Locale.getDefault(), "Moderate (± %.1fm)", acc));
+        } else {
+            accuracyText.postValue(String.format(Locale.getDefault(), "Approximate (± %.1fm - Satellite Obstruction)", acc));
+        }
+    }
+
+    /**
+     * Starts continuous GPS telemetry acquisition for foreground fragments (Home / Map).
+     */
+    public void startLocationUpdates() {
+        Context ctx = getApplication().getApplicationContext();
+
+        boolean fine = ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+        boolean coarse = ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+
+        if (!fine && !coarse) {
+            locationStatus.postValue(LocationStatus.PERMISSION_REQUIRED);
+            return;
+        }
+
+        LocationManager lm = (LocationManager) ctx.getSystemService(Context.LOCATION_SERVICE);
+        boolean gpsEnabled = false;
+        boolean networkEnabled = false;
+        if (lm != null) {
+            try { gpsEnabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER); } catch (Exception ignored) {}
+            try { networkEnabled = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER); } catch (Exception ignored) {}
+        }
+
+        if (!gpsEnabled && !networkEnabled) {
+            locationStatus.postValue(LocationStatus.LOCATION_DISABLED);
+            return;
+        }
+
+        if (currentLocation.getValue() == null) {
+            locationStatus.postValue(LocationStatus.ACQUIRING);
+        }
+
+        // Try to fetch last known location immediately for instant UI display
+        try {
+            fusedLocationClient.getLastLocation().addOnSuccessListener(loc -> {
+                if (loc != null) {
+                    currentLocation.postValue(loc);
+                    locationStatus.postValue(LocationStatus.ACTIVE);
+                    updateAccuracyDisclosure(loc.getAccuracy());
+                }
+            });
+        } catch (SecurityException ignored) {}
+
+        if (!isForegroundRequesting) {
+            LocationRequest request = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 4000)
+                    .setMinUpdateIntervalMillis(2000)
+                    .setMinUpdateDistanceMeters(1.0f)
+                    .build();
+
+            if (foregroundLocationCallback == null) {
+                foregroundLocationCallback = new LocationCallback() {
+                    @Override
+                    public void onLocationResult(@NonNull LocationResult locationResult) {
+                        for (Location loc : locationResult.getLocations()) {
+                            if (loc != null) {
+                                currentLocation.postValue(loc);
+                                locationStatus.postValue(LocationStatus.ACTIVE);
+                                updateAccuracyDisclosure(loc.getAccuracy());
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onLocationAvailability(@NonNull LocationAvailability locationAvailability) {
+                        if (!locationAvailability.isLocationAvailable() && currentLocation.getValue() == null) {
+                            locationStatus.postValue(LocationStatus.ACQUIRING);
+                        }
+                    }
+                };
+            }
+
+            try {
+                fusedLocationClient.requestLocationUpdates(request, foregroundLocationCallback, Looper.getMainLooper());
+                isForegroundRequesting = true;
+            } catch (SecurityException e) {
+                locationStatus.postValue(LocationStatus.PERMISSION_REQUIRED);
+            } catch (Exception e) {
+                Log.e(TAG, "Error requesting location updates: " + e.getMessage());
+                locationStatus.postValue(LocationStatus.ERROR);
+            }
+        }
+    }
+
+    /**
+     * Stops continuous updates when the user navigates away, saving device battery.
+     */
+    public void stopLocationUpdates() {
+        if (Boolean.TRUE.equals(isTracking.getValue())) {
+            // Keep background journey tracking alive
+            return;
+        }
+        if (fusedLocationClient != null && foregroundLocationCallback != null && isForegroundRequesting) {
+            fusedLocationClient.removeLocationUpdates(foregroundLocationCallback);
+            isForegroundRequesting = false;
+        }
+    }
 
     public void checkExistingActiveJourney() {
         repository.getActiveJourneySync(new JourneyRepository.JourneyCallback<Journey>() {
@@ -232,9 +363,9 @@ public class JourneyViewModel extends AndroidViewModel {
     protected void onCleared() {
         super.onCleared();
         stopTimer();
+        stopLocationUpdates();
         try {
             getApplication().unregisterReceiver(locationReceiver);
         } catch (Exception ignored) {}
     }
 }
-
