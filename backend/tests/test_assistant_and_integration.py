@@ -80,9 +80,9 @@ def test_full_integration_sos_with_unverified_vs_verified_contacts(db_session):
     # 1. Create User
     test_user = User(
         id="usr_test_integration",
-        full_name="Priya Sharma",
+        display_name="Priya Sharma",
         email="priya@example.com",
-        phone_number="+919876543210",
+        phone="+919876543210",
         hashed_password=get_password_hash("SecretPassword123!"),
         is_active=True,
     )
@@ -94,8 +94,8 @@ def test_full_integration_sos_with_unverified_vs_verified_contacts(db_session):
         id="cnt_unverified",
         user_id=test_user.id,
         name="Unverified Contact",
-        phone_number="+919876543211",
-        relationship="Colleague",
+        phone="+919876543211",
+        relationship_type="Colleague",
         is_verified=False,
         receive_sos_alerts=True,
     )
@@ -106,8 +106,8 @@ def test_full_integration_sos_with_unverified_vs_verified_contacts(db_session):
         id="cnt_verified",
         user_id=test_user.id,
         name="Verified Sibling",
-        phone_number="+919876543212",
-        relationship="Sibling",
+        phone="+919876543212",
+        relationship_type="Sibling",
         is_verified=True,
         receive_sos_alerts=True,
     )
@@ -128,7 +128,7 @@ def test_full_integration_sos_with_unverified_vs_verified_contacts(db_session):
     # STRICT CHECK: Unverified contact MUST NOT be in eligible list!
     assert len(eligible_contacts) == 1
     assert eligible_contacts[0].id == "cnt_verified"
-    assert eligible_contacts[0].phone_number == "+919876543212"
+    assert eligible_contacts[0].phone == "+919876543212"
 
 
 def test_sos_idempotency_duplicate_prevention(db_session):
