@@ -14,7 +14,7 @@
         android:layout_gravity="center_horizontal"
         android:layout_marginBottom="16dp"
         android:src="@drawable/ic_verified"
-        app:tint="?attr/colorPrimary"
+        app:tint="@color/color_primary"
         android:contentDescription="Verification icon" />
 
     <TextView
@@ -23,7 +23,7 @@
         android:text="Verify Contact"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:textColor="?attr/colorOnSurface"
+        android:textColor="@color/color_on_surface"
         android:gravity="center"
         android:layout_marginBottom="8dp" />
 
@@ -33,7 +33,7 @@
         android:layout_height="wrap_content"
         android:text="A 6-digit verification code has been dispatched to this contact's phone number. Enter it below to authorize SOS alerts."
         android:textSize="13sp"
-        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textColor="@color/color_on_surface_variant"
         android:gravity="center"
         android:layout_marginBottom="16dp" />
 
@@ -84,7 +84,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnAutofillOtp"
-                    style="@style/Widget.Material3.Button.TonalButton"
+                    style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Auto-fill"
@@ -98,7 +98,7 @@
     <!-- OTP Input -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/tilOtpCode"
-        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        style="@style/Widget.SafePath.TextInputLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
@@ -106,6 +106,7 @@
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etOtpCode"
+            style="@style/Widget.SafePath.TextInputEditText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:inputType="number"
@@ -126,7 +127,7 @@
         android:padding="8dp"
         android:text="Resend Code"
         android:textSize="13sp"
-        android:textColor="?attr/colorPrimary"
+        android:textColor="@color/color_primary"
         android:clickable="true"
         android:focusable="true" />
 
@@ -138,7 +139,7 @@
         android:gravity="center"
         android:text="Resend available in 60s"
         android:textSize="12sp"
-        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textColor="@color/color_on_surface_variant"
         android:layout_marginBottom="16dp"
         android:visibility="visible" />
 
@@ -150,7 +151,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCancelVerify"
-            style="@style/Widget.Material3.Button.OutlinedButton"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -159,7 +160,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSubmitOtp"
-            style="@style/Widget.Material3.Button"
+            style="@style/Widget.MaterialComponents.Button"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"

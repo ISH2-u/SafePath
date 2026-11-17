@@ -17,7 +17,7 @@
             android:text="Add Emergency Contact"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface"
+            android:textColor="@color/color_on_surface"
             android:layout_marginBottom="16dp" />
 
         <!-- STRICT POLICY notice -->
@@ -43,7 +43,7 @@
         <!-- Full Name -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilContactName"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            style="@style/Widget.SafePath.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
@@ -52,6 +52,7 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etContactName"
+                style="@style/Widget.SafePath.TextInputEditText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textPersonName"
@@ -62,7 +63,7 @@
         <!-- Phone Number -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilContactPhone"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            style="@style/Widget.SafePath.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
@@ -71,6 +72,7 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etContactPhone"
+                style="@style/Widget.SafePath.TextInputEditText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="phone"
@@ -81,7 +83,7 @@
         <!-- Email (optional) -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilContactEmail"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            style="@style/Widget.SafePath.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
@@ -90,6 +92,7 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etContactEmail"
+                style="@style/Widget.SafePath.TextInputEditText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textEmailAddress"
@@ -100,7 +103,7 @@
         <!-- Relationship Type -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilRelationship"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            style="@style/Widget.SafePath.TextInputLayout.Dropdown"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
@@ -133,14 +136,14 @@
                     android:layout_height="wrap_content"
                     android:text="Receive SOS Alerts"
                     android:textSize="14sp"
-                    android:textColor="?attr/colorOnSurface" />
+                    android:textColor="@color/color_on_surface" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Contact will receive your location when SOS is triggered (requires verification)"
                     android:textSize="12sp"
-                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textColor="@color/color_on_surface_variant"
                     android:layout_marginTop="2dp" />
             </LinearLayout>
 
@@ -160,7 +163,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnCancelAddContact"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -170,7 +173,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnSaveContact"
-                style="@style/Widget.Material3.Button"
+                style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"

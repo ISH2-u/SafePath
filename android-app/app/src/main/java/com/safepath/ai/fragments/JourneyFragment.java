@@ -215,10 +215,11 @@ public class JourneyFragment extends Fragment {
     }
 
     private void showPermissionRationaleDialog() {
-        View dialogView = LayoutInflater.from(requireContext())
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext());
+        View dialogView = LayoutInflater.from(builder.getContext())
                 .inflate(R.layout.dialog_location_permission, null);
 
-        AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
+        AlertDialog dialog = builder
                 .setView(dialogView)
                 .setCancelable(true)
                 .create();

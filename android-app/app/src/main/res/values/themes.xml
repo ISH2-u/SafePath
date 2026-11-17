@@ -10,6 +10,9 @@
         <item name="colorOnSecondary">@color/color_on_secondary</item>
         <item name="colorSurface">@color/color_surface</item>
         <item name="colorOnSurface">@color/color_on_surface</item>
+        <item name="colorOnSurfaceVariant">@color/color_on_surface_variant</item>
+        <item name="colorOutline">@color/color_divider</item>
+        <item name="colorOutlineVariant">@color/color_divider</item>
         <item name="android:colorBackground">@color/color_background</item>
         <item name="android:windowBackground">@color/color_background</item>
         <item name="android:textColorPrimary">@color/color_on_surface</item>
@@ -74,6 +77,21 @@
         <item name="android:textColorHint">@color/color_input_hint</item>
         <item name="android:textSize">15sp</item>
         <item name="android:minHeight">52dp</item>
+    </style>
+
+    <style name="Widget.SafePath.TextInputLayout.Dropdown" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+        <item name="boxBackgroundColor">@color/color_input_background</item>
+        <item name="boxStrokeColor">@color/box_stroke_selector</item>
+        <item name="boxStrokeWidth">1.5dp</item>
+        <item name="boxStrokeWidthFocused">2dp</item>
+        <item name="boxCornerRadiusTopStart">12dp</item>
+        <item name="boxCornerRadiusTopEnd">12dp</item>
+        <item name="boxCornerRadiusBottomStart">12dp</item>
+        <item name="boxCornerRadiusBottomEnd">12dp</item>
+        <item name="hintTextColor">@color/color_primary</item>
+        <item name="android:textColorHint">@color/color_input_hint</item>
+        <item name="endIconTint">@color/color_primary</item>
+        <item name="errorTextColor">@color/color_sos_red</item>
     </style>
 
 </resources>

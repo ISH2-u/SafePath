@@ -151,7 +151,7 @@
             <!-- Verify button (shown only for unverified contacts) -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVerifyContact"
-                style="@style/Widget.Material3.Button.TonalButton"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
                 android:minHeight="0dp"
@@ -172,7 +172,7 @@
             <!-- Edit button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnEditContact"
-                style="@style/Widget.Material3.Button.TextButton"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
                 android:minHeight="0dp"
@@ -187,7 +187,7 @@
             <!-- Delete button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnDeleteContact"
-                style="@style/Widget.Material3.Button.TextButton"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
                 android:minHeight="0dp"

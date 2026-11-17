@@ -198,7 +198,8 @@ public class ProfileFragment extends Fragment {
     }
 
     private void showDeleteAccountDialog() {
-        View dialogView = LayoutInflater.from(requireContext())
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext());
+        View dialogView = LayoutInflater.from(builder.getContext())
                 .inflate(R.layout.dialog_delete_account, null);
 
         TextInputLayout   tilPwd  = dialogView.findViewById(R.id.tilDeletePassword);
@@ -207,7 +208,7 @@ public class ProfileFragment extends Fragment {
         MaterialButton btnCancel  = dialogView.findViewById(R.id.btnCancelDelete);
         MaterialButton btnConfirm = dialogView.findViewById(R.id.btnConfirmDelete);
 
-        AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
+        AlertDialog dialog = builder
                 .setView(dialogView)
                 .setCancelable(true)
                 .create();

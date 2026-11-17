@@ -17,13 +17,13 @@
             android:text="Edit Emergency Contact"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface"
+            android:textColor="@color/color_on_surface"
             android:layout_marginBottom="16dp" />
 
         <!-- Full Name -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilEditContactName"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            style="@style/Widget.SafePath.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
@@ -32,6 +32,7 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etEditContactName"
+                style="@style/Widget.SafePath.TextInputEditText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textPersonName"
@@ -42,7 +43,7 @@
         <!-- Phone Number -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilEditContactPhone"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            style="@style/Widget.SafePath.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
@@ -51,6 +52,7 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etEditContactPhone"
+                style="@style/Widget.SafePath.TextInputEditText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="phone"
@@ -61,7 +63,7 @@
         <!-- Email (optional) -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilEditContactEmail"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            style="@style/Widget.SafePath.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
@@ -70,6 +72,7 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etEditContactEmail"
+                style="@style/Widget.SafePath.TextInputEditText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textEmailAddress"
@@ -80,7 +83,7 @@
         <!-- Relationship Type -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilEditRelationship"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            style="@style/Widget.SafePath.TextInputLayout.Dropdown"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
@@ -114,7 +117,7 @@
                     android:layout_height="wrap_content"
                     android:text="Receive SOS Alerts"
                     android:textSize="14sp"
-                    android:textColor="?attr/colorOnSurface" />
+                    android:textColor="@color/color_on_surface" />
 
                 <TextView
                     android:id="@+id/tvEditSosHelp"
@@ -123,7 +126,7 @@
                     android:layout_marginTop="2dp"
                     android:text="Dispatches emergency alerts to this contact."
                     android:textSize="12sp"
-                    android:textColor="?attr/colorOnSurfaceVariant" />
+                    android:textColor="@color/color_on_surface_variant" />
             </LinearLayout>
 
             <androidx.appcompat.widget.SwitchCompat
@@ -141,7 +144,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnCancelEditContact"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -151,7 +154,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnUpdateContact"
-                style="@style/Widget.Material3.Button"
+                style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
