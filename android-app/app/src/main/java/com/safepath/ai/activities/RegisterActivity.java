@@ -15,6 +15,7 @@ import com.google.android.material.textfield.TextInputLayout;
 import com.safepath.ai.R;
 import com.safepath.ai.network.ApiConfig;
 import com.safepath.ai.network.dto.RegisterRequest;
+import com.safepath.ai.utils.PhoneUtils;
 import com.safepath.ai.viewmodels.AuthViewModel;
 
 /**
@@ -150,8 +151,10 @@ public class RegisterActivity extends AppCompatActivity {
             valid = false;
         }
 
-        if (TextUtils.isEmpty(phone) || !phone.matches("^\\+?[0-9]{7,15}$")) {
-            setError(tilPhone, "Enter a valid phone number (e.g. +91XXXXXXXXXX)");
+        String normPhone = PhoneUtils.normalize(phone);
+
+        if (TextUtils.isEmpty(phone) || !PhoneUtils.isValid(normPhone)) {
+            setError(tilPhone, "Enter a valid phone number (7-15 digits)");
             valid = false;
         }
 
@@ -171,7 +174,7 @@ public class RegisterActivity extends AppCompatActivity {
         RegisterRequest req = new RegisterRequest();
         req.fullName = fullName;
         req.email    = email;
-        req.phone    = phone;
+        req.phone    = normPhone;
         req.password = password;
 
         viewModel.register(req);

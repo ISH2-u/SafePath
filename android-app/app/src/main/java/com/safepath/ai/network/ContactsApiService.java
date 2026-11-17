@@ -3,6 +3,7 @@ package com.safepath.ai.network;
 import com.safepath.ai.network.dto.ContactRequest;
 import com.safepath.ai.network.dto.ContactResponse;
 import com.safepath.ai.network.dto.ToggleSosRequest;
+import com.safepath.ai.network.dto.VerificationResponse;
 import com.safepath.ai.network.dto.VerifyContactRequest;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +30,7 @@ public interface ContactsApiService {
     Call<Map<String, String>> deleteContact(@Path("id") String contactId);
 
     @POST("contacts/{id}/send-verification")
-    Call<Map<String, String>> sendVerification(@Path("id") String contactId);
+    Call<VerificationResponse> sendVerification(@Path("id") String contactId);
 
     @POST("contacts/{id}/verify")
     Call<ContactResponse> verifyContact(@Path("id") String contactId, @Body VerifyContactRequest request);
@@ -40,4 +41,3 @@ public interface ContactsApiService {
     @GET("contacts/authorized-recipients")
     Call<Map<String, Object>> getAuthorizedSosRecipients();
 }
-

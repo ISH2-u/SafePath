@@ -10,6 +10,7 @@ import com.safepath.ai.network.RetrofitClient;
 import com.safepath.ai.network.dto.ContactRequest;
 import com.safepath.ai.network.dto.ContactResponse;
 import com.safepath.ai.network.dto.ToggleSosRequest;
+import com.safepath.ai.network.dto.VerificationResponse;
 import com.safepath.ai.network.dto.VerifyContactRequest;
 import com.safepath.ai.utils.NetworkErrorParser;
 import java.util.ArrayList;
@@ -123,19 +124,19 @@ public class ContactsRepository {
         });
     }
 
-    public void sendVerificationCode(String contactId, ContactsCallback<String> callback) {
-        apiService.sendVerification(contactId).enqueue(new Callback<Map<String, String>>() {
+    public void sendVerificationCode(String contactId, ContactsCallback<VerificationResponse> callback) {
+        apiService.sendVerification(contactId).enqueue(new Callback<VerificationResponse>() {
             @Override
-            public void onResponse(Call<Map<String, String>> call, Response<Map<String, String>> response) {
-                if (response.isSuccessful()) {
-                    callback.onSuccess("6-digit verification code dispatched to contact.");
+            public void onResponse(Call<VerificationResponse> call, Response<VerificationResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onSuccess(response.body());
                 } else {
                     callback.onError("Failed to send verification code: " + parseError(response));
                 }
             }
 
             @Override
-            public void onFailure(Call<Map<String, String>> call, Throwable t) {
+            public void onFailure(Call<VerificationResponse> call, Throwable t) {
                 callback.onError("Network error sending verification: " + t.getMessage());
             }
         });
@@ -183,12 +184,21 @@ public class ContactsRepository {
 
     private void updateLocalCache(String userId, List<ContactResponse> remoteList) {
         executor.execute(() -> {
-            contactDao.deleteAllForUser(userId);
+            String effectiveUserId = (userId != null && !userId.isEmpty())
+                    ? userId
+                    : (remoteList != null && !remoteList.isEmpty() ? remoteList.get(0).userId : null);
+
+            if (effectiveUserId != null) {
+                contactDao.deleteAllForUser(effectiveUserId);
+            }
+            if (remoteList == null || remoteList.isEmpty()) {
+                return;
+            }
             List<EmergencyContact> localList = new ArrayList<>();
             for (ContactResponse r : remoteList) {
                 EmergencyContact ec = new EmergencyContact();
                 ec.remoteId = r.id;
-                ec.userId = userId;
+                ec.userId = (r.userId != null && !r.userId.isEmpty()) ? r.userId : effectiveUserId;
                 ec.name = r.name;
                 ec.phone = r.phone;
                 ec.email = r.email;
@@ -203,10 +213,11 @@ public class ContactsRepository {
     }
 
     private void saveSingleContactLocally(String userId, ContactResponse r) {
+        if (r == null) return;
         executor.execute(() -> {
             EmergencyContact ec = new EmergencyContact();
             ec.remoteId = r.id;
-            ec.userId = userId;
+            ec.userId = (userId != null && !userId.isEmpty()) ? userId : r.userId;
             ec.name = r.name;
             ec.phone = r.phone;
             ec.email = r.email;
@@ -227,4 +238,3 @@ public class ContactsRepository {
         return "HTTP " + response.code();
     }
 }
-

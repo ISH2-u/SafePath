@@ -7,6 +7,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import com.safepath.ai.network.dto.ContactRequest;
 import com.safepath.ai.network.dto.ContactResponse;
+import com.safepath.ai.network.dto.VerificationResponse;
 import com.safepath.ai.repositories.ContactsRepository;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,10 +21,11 @@ public class ContactsViewModel extends AndroidViewModel {
 
     private final ContactsRepository repository;
 
-    private final MutableLiveData<Boolean>           loading          = new MutableLiveData<>(false);
-    private final MutableLiveData<String>            errorMessage     = new MutableLiveData<>(null);
-    private final MutableLiveData<String>            operationSuccess = new MutableLiveData<>(null);
-    private final MutableLiveData<List<ContactResponse>> contacts     = new MutableLiveData<>(new ArrayList<>());
+    private final MutableLiveData<Boolean>           loading              = new MutableLiveData<>(false);
+    private final MutableLiveData<String>            errorMessage         = new MutableLiveData<>(null);
+    private final MutableLiveData<String>            operationSuccess     = new MutableLiveData<>(null);
+    private final MutableLiveData<List<ContactResponse>> contacts         = new MutableLiveData<>(new ArrayList<>());
+    private final MutableLiveData<VerificationResponse> verificationDispatch = new MutableLiveData<>(null);
 
     public ContactsViewModel(@NonNull Application application) {
         super(application);
@@ -31,18 +33,18 @@ public class ContactsViewModel extends AndroidViewModel {
     }
 
     // ── Accessors ─────────────────────────────────────────────────────────────
-    public LiveData<Boolean>           isLoading()           { return loading; }
-    public LiveData<Boolean>           getIsLoading()        { return loading; }
-    public LiveData<String>            getErrorMessage()     { return errorMessage; }
-    public LiveData<String>            getOperationSuccess() { return operationSuccess; }
-    public LiveData<List<ContactResponse>> getContacts()     { return contacts; }
+    public LiveData<Boolean>              isLoading()               { return loading; }
+    public LiveData<Boolean>              getIsLoading()            { return loading; }
+    public LiveData<String>               getErrorMessage()         { return errorMessage; }
+    public LiveData<String>               getOperationSuccess()     { return operationSuccess; }
+    public LiveData<List<ContactResponse>> getContacts()            { return contacts; }
+    public LiveData<VerificationResponse> getVerificationDispatch() { return verificationDispatch; }
 
     // ── Load ──────────────────────────────────────────────────────────────────
 
     public void loadContacts() {
         loading.setValue(true);
         errorMessage.setValue(null);
-        // syncContacts with no userId — repository reads from API (auth via token)
         repository.syncContacts(null, new ContactsRepository.ContactsCallback<List<ContactResponse>>() {
             @Override public void onSuccess(List<ContactResponse> result) {
                 loading.postValue(false);
@@ -111,9 +113,13 @@ public class ContactsViewModel extends AndroidViewModel {
 
     public void sendVerificationCode(String contactId) {
         repository.sendVerificationCode(contactId,
-                new ContactsRepository.ContactsCallback<String>() {
-            @Override public void onSuccess(String result) {
-                operationSuccess.postValue("Verification code sent to contact.");
+                new ContactsRepository.ContactsCallback<VerificationResponse>() {
+            @Override public void onSuccess(VerificationResponse result) {
+                verificationDispatch.postValue(result);
+                String msg = (result != null && result.message != null)
+                        ? result.message
+                        : "Verification code sent to contact.";
+                operationSuccess.postValue(msg);
             }
             @Override public void onError(String error) {
                 errorMessage.postValue("Could not send code: " + error);

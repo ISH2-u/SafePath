@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView
+<com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginLeft="12dp"
-    android:layout_marginRight="12dp"
+    android:layout_marginStart="14dp"
+    android:layout_marginEnd="14dp"
     android:layout_marginTop="6dp"
     android:layout_marginBottom="6dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="2dp"
-    app:cardBackgroundColor="?attr/colorSurface">
+    app:cardCornerRadius="14dp"
+    app:cardElevation="1dp"
+    app:cardBackgroundColor="@color/color_surface"
+    app:strokeColor="@color/color_divider"
+    app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -29,10 +31,10 @@
             <!-- Avatar circle -->
             <androidx.appcompat.widget.AppCompatTextView
                 android:id="@+id/tvContactAvatar"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
                 android:gravity="center"
-                android:textSize="20sp"
+                android:textSize="18sp"
                 android:textColor="@android:color/white"
                 android:textStyle="bold"
                 android:background="@drawable/bg_avatar_circle"
@@ -44,8 +46,8 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginLeft="12dp"
-                android:layout_marginRight="8dp">
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="8dp">
 
                 <TextView
                     android:id="@+id/tvContactName"
@@ -53,7 +55,7 @@
                     android:layout_height="wrap_content"
                     android:textSize="16sp"
                     android:textStyle="bold"
-                    android:textColor="?attr/colorOnSurface"
+                    android:textColor="@color/color_on_surface"
                     android:maxLines="1"
                     android:ellipsize="end"
                     tools:text="Jane Smith" />
@@ -63,8 +65,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textSize="12sp"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:layout_marginTop="2dp"
+                    android:textColor="@color/color_primary"
+                    android:textStyle="bold"
+                    android:layout_marginTop="1dp"
                     tools:text="Family" />
 
                 <TextView
@@ -72,7 +75,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textSize="13sp"
-                    android:textColor="?attr/colorOnSurface"
+                    android:textColor="@color/color_on_surface_variant"
                     android:layout_marginTop="2dp"
                     tools:text="+91 98765 43210" />
             </LinearLayout>
@@ -82,11 +85,11 @@
                 android:id="@+id/tvVerifiedBadge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:paddingLeft="8dp"
-                android:paddingRight="8dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp"
-                android:textSize="11sp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
+                android:textSize="10sp"
                 android:textStyle="bold"
                 android:textColor="@android:color/white"
                 android:background="@drawable/bg_badge_verified"
@@ -98,51 +101,85 @@
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginTop="12dp"
-            android:layout_marginBottom="8dp"
-            android:background="?attr/colorOutlineVariant" />
+            android:layout_marginBottom="10dp"
+            android:background="@color/color_divider" />
 
-        <!-- Bottom row: SOS toggle + action buttons -->
+        <!-- SOS Alerts toggle row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
-            <!-- SOS Alerts label + switch -->
-            <TextView
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Receive SOS Alerts"
-                android:textSize="13sp"
-                android:textColor="?attr/colorOnSurfaceVariant" />
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Receive SOS Alerts"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/color_on_surface" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Dispatches location upon emergency"
+                    android:textSize="11sp"
+                    android:textColor="@color/color_on_surface_variant" />
+            </LinearLayout>
 
             <androidx.appcompat.widget.SwitchCompat
                 android:id="@+id/switchSosAlerts"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:contentDescription="Toggle SOS alerts for this contact"
-                android:layout_marginRight="8dp" />
+                android:contentDescription="Toggle SOS alerts for this contact" />
+        </LinearLayout>
+
+        <!-- Action buttons row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="8dp">
 
             <!-- Verify button (shown only for unverified contacts) -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVerifyContact"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.Material3.Button.TonalButton"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minHeight="36dp"
-                android:text="Verify"
-                android:textSize="12sp"
-                android:layout_marginRight="4dp"
+                android:layout_height="36dp"
+                android:minHeight="0dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="0dp"
+                android:paddingBottom="0dp"
+                android:text="Verify OTP"
+                android:textSize="11sp"
                 app:cornerRadius="8dp" />
+
+            <!-- Spacer -->
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
 
             <!-- Edit button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnEditContact"
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minHeight="36dp"
+                android:layout_height="36dp"
+                android:minHeight="0dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="0dp"
+                android:paddingBottom="0dp"
                 android:text="Edit"
                 android:textSize="12sp"
                 app:cornerRadius="8dp" />
@@ -152,13 +189,17 @@
                 android:id="@+id/btnDeleteContact"
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minHeight="36dp"
+                android:layout_height="36dp"
+                android:minHeight="0dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="0dp"
+                android:paddingBottom="0dp"
                 android:text="Delete"
                 android:textSize="12sp"
-                android:textColor="@color/safety_critical"
+                android:textColor="@color/color_sos_red"
                 app:cornerRadius="8dp" />
         </LinearLayout>
-    </LinearLayout>
-</androidx.cardview.widget.CardView>
 
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

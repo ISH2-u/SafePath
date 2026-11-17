@@ -15,6 +15,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -27,6 +28,8 @@ import com.safepath.ai.R;
 import com.safepath.ai.adapters.EmergencyContactsAdapter;
 import com.safepath.ai.network.dto.ContactRequest;
 import com.safepath.ai.network.dto.ContactResponse;
+import com.safepath.ai.network.dto.VerificationResponse;
+import com.safepath.ai.utils.PhoneUtils;
 import com.safepath.ai.viewmodels.ContactsViewModel;
 import java.util.Locale;
 
@@ -225,14 +228,16 @@ public class EmergencyContactsFragment extends Fragment
 
         if (btnSave != null) {
             btnSave.setOnClickListener(v -> {
-                String name  = etName  != null && etName.getText()  != null
+                String name     = etName  != null && etName.getText()  != null
                         ? etName.getText().toString().trim()  : "";
-                String phone = etPhone != null && etPhone.getText() != null
+                String rawPhone = etPhone != null && etPhone.getText() != null
                         ? etPhone.getText().toString().trim() : "";
-                String email = etEmail != null && etEmail.getText() != null
+                String email    = etEmail != null && etEmail.getText() != null
                         ? etEmail.getText().toString().trim() : "";
-                String rel   = actvRel != null && actvRel.getText() != null
+                String rel      = actvRel != null && actvRel.getText() != null
                         ? actvRel.getText().toString().trim() : RELATIONSHIP_OPTIONS[0];
+
+                String normPhone = PhoneUtils.normalize(rawPhone);
 
                 boolean valid = true;
                 if (TextUtils.isEmpty(name)) {
@@ -241,11 +246,12 @@ public class EmergencyContactsFragment extends Fragment
                 } else {
                     if (tilName != null) tilName.setError(null);
                 }
-                if (TextUtils.isEmpty(phone)) {
+
+                if (TextUtils.isEmpty(rawPhone)) {
                     if (tilPhone != null) tilPhone.setError("Phone number is required");
                     valid = false;
-                } else if (!phone.matches("^\\+?[0-9]{7,15}$")) {
-                    if (tilPhone != null) tilPhone.setError("Enter a valid phone number");
+                } else if (!PhoneUtils.isValid(normPhone)) {
+                    if (tilPhone != null) tilPhone.setError("Enter a valid phone number (7-15 digits)");
                     valid = false;
                 } else {
                     if (tilPhone != null) tilPhone.setError(null);
@@ -255,7 +261,7 @@ public class EmergencyContactsFragment extends Fragment
 
                 ContactRequest req = new ContactRequest();
                 req.name             = name;
-                req.phone            = phone;
+                req.phone            = normPhone;
                 req.email            = email.isEmpty() ? null : email;
                 req.relationshipType = rel;
                 req.receiveSosAlerts = switchSos != null && switchSos.isChecked();
@@ -274,22 +280,38 @@ public class EmergencyContactsFragment extends Fragment
         View dialogView = LayoutInflater.from(requireContext())
                 .inflate(R.layout.dialog_edit_contact, null);
 
-        TextInputLayout   tilName    = dialogView.findViewById(R.id.tilEditContactName);
-        TextInputLayout   tilPhone   = dialogView.findViewById(R.id.tilEditContactPhone);
-        TextInputLayout   tilRel     = dialogView.findViewById(R.id.tilEditRelationship);
-        TextInputEditText etName     = dialogView.findViewById(R.id.etEditContactName);
-        TextInputEditText etPhone    = dialogView.findViewById(R.id.etEditContactPhone);
-        TextInputEditText etEmail    = dialogView.findViewById(R.id.etEditContactEmail);
-        AutoCompleteTextView actvRel = dialogView.findViewById(R.id.actvEditRelationship);
-        SwitchCompat switchSos       = dialogView.findViewById(R.id.switchEditSosAlerts);
-        MaterialButton btnCancel     = dialogView.findViewById(R.id.btnCancelEditContact);
-        MaterialButton btnUpdate     = dialogView.findViewById(R.id.btnUpdateContact);
+        TextInputLayout   tilName      = dialogView.findViewById(R.id.tilEditContactName);
+        TextInputLayout   tilPhone     = dialogView.findViewById(R.id.tilEditContactPhone);
+        TextInputLayout   tilRel       = dialogView.findViewById(R.id.tilEditRelationship);
+        TextInputEditText etName       = dialogView.findViewById(R.id.etEditContactName);
+        TextInputEditText etPhone      = dialogView.findViewById(R.id.etEditContactPhone);
+        TextInputEditText etEmail      = dialogView.findViewById(R.id.etEditContactEmail);
+        AutoCompleteTextView actvRel   = dialogView.findViewById(R.id.actvEditRelationship);
+        SwitchCompat switchSos         = dialogView.findViewById(R.id.switchEditSosAlerts);
+        TextView       tvEditSosHelp   = dialogView.findViewById(R.id.tvEditSosHelp);
+        MaterialButton btnCancel       = dialogView.findViewById(R.id.btnCancelEditContact);
+        MaterialButton btnUpdate       = dialogView.findViewById(R.id.btnUpdateContact);
 
         // Pre-populate
         if (etName  != null) etName.setText(contact.name);
         if (etPhone != null) etPhone.setText(contact.phone);
         if (etEmail != null) etEmail.setText(contact.email != null ? contact.email : "");
-        if (switchSos != null) switchSos.setChecked(contact.receiveSosAlerts);
+
+        if (switchSos != null) {
+            if (contact.isVerified) {
+                switchSos.setEnabled(true);
+                switchSos.setChecked(contact.receiveSosAlerts);
+                if (tvEditSosHelp != null) {
+                    tvEditSosHelp.setText("Dispatches emergency alerts to this contact.");
+                }
+            } else {
+                switchSos.setEnabled(false);
+                switchSos.setChecked(false);
+                if (tvEditSosHelp != null) {
+                    tvEditSosHelp.setText("Verification required before SOS alerts can be enabled.");
+                }
+            }
+        }
 
         ArrayAdapter<String> relAdapter = new ArrayAdapter<>(requireContext(),
                 android.R.layout.simple_dropdown_item_1line, RELATIONSHIP_OPTIONS);
@@ -309,14 +331,16 @@ public class EmergencyContactsFragment extends Fragment
 
         if (btnUpdate != null) {
             btnUpdate.setOnClickListener(v -> {
-                String name  = etName  != null && etName.getText()  != null
+                String name     = etName  != null && etName.getText()  != null
                         ? etName.getText().toString().trim()  : "";
-                String phone = etPhone != null && etPhone.getText() != null
+                String rawPhone = etPhone != null && etPhone.getText() != null
                         ? etPhone.getText().toString().trim() : "";
-                String email = etEmail != null && etEmail.getText() != null
+                String email    = etEmail != null && etEmail.getText() != null
                         ? etEmail.getText().toString().trim() : "";
-                String rel   = actvRel != null && actvRel.getText() != null
+                String rel      = actvRel != null && actvRel.getText() != null
                         ? actvRel.getText().toString().trim() : RELATIONSHIP_OPTIONS[0];
+
+                String normPhone = PhoneUtils.normalize(rawPhone);
 
                 boolean valid = true;
                 if (TextUtils.isEmpty(name)) {
@@ -325,8 +349,11 @@ public class EmergencyContactsFragment extends Fragment
                 } else {
                     if (tilName != null) tilName.setError(null);
                 }
-                if (TextUtils.isEmpty(phone)) {
+                if (TextUtils.isEmpty(rawPhone)) {
                     if (tilPhone != null) tilPhone.setError("Phone is required");
+                    valid = false;
+                } else if (!PhoneUtils.isValid(normPhone)) {
+                    if (tilPhone != null) tilPhone.setError("Enter a valid phone number (7-15 digits)");
                     valid = false;
                 } else {
                     if (tilPhone != null) tilPhone.setError(null);
@@ -335,10 +362,11 @@ public class EmergencyContactsFragment extends Fragment
 
                 ContactRequest req = new ContactRequest();
                 req.name             = name;
-                req.phone            = phone;
+                req.phone            = normPhone;
                 req.email            = email.isEmpty() ? null : email;
                 req.relationshipType = rel;
-                req.receiveSosAlerts = switchSos != null && switchSos.isChecked();
+                // Strict safety invariant: never send receiveSosAlerts=true if unverified
+                req.receiveSosAlerts = contact.isVerified && switchSos != null && switchSos.isChecked();
 
                 if (contact.id != null) {
                     viewModel.editContact(contact.id, req);
@@ -356,17 +384,44 @@ public class EmergencyContactsFragment extends Fragment
         View dialogView = LayoutInflater.from(requireContext())
                 .inflate(R.layout.dialog_verify_contact, null);
 
-        TextInputEditText etOtp    = dialogView.findViewById(R.id.etOtpCode);
-        TextInputLayout   tilOtp   = dialogView.findViewById(R.id.tilOtpCode);
-        TextView          tvResend = dialogView.findViewById(R.id.tvResendCode);
-        TextView          tvTimer  = dialogView.findViewById(R.id.tvResendTimer);
-        MaterialButton btnCancel   = dialogView.findViewById(R.id.btnCancelVerify);
-        MaterialButton btnSubmit   = dialogView.findViewById(R.id.btnSubmitOtp);
+        TextInputEditText etOtp        = dialogView.findViewById(R.id.etOtpCode);
+        TextInputLayout   tilOtp       = dialogView.findViewById(R.id.tilOtpCode);
+        TextView          tvResend     = dialogView.findViewById(R.id.tvResendCode);
+        TextView          tvTimer      = dialogView.findViewById(R.id.tvResendTimer);
+        View              cardDemoOtp  = dialogView.findViewById(R.id.cardDemoOtpHint);
+        TextView          tvDemoCode   = dialogView.findViewById(R.id.tvDemoOtpCode);
+        MaterialButton    btnAutofill  = dialogView.findViewById(R.id.btnAutofillOtp);
+        MaterialButton    btnCancel    = dialogView.findViewById(R.id.btnCancelVerify);
+        MaterialButton    btnSubmit    = dialogView.findViewById(R.id.btnSubmitOtp);
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
                 .setView(dialogView)
                 .setCancelable(false)
                 .create();
+
+        // Observe verification dispatch to populate demo OTP banner
+        Observer<VerificationResponse> otpObserver = res -> {
+            if (res != null && contact.id != null && contact.id.equals(res.contactId)) {
+                if (res.devVerificationCode != null && !res.devVerificationCode.isEmpty()) {
+                    if (cardDemoOtp != null) cardDemoOtp.setVisibility(View.VISIBLE);
+                    if (tvDemoCode != null) tvDemoCode.setText("Code: " + res.devVerificationCode);
+                    if (btnAutofill != null) {
+                        btnAutofill.setOnClickListener(v -> {
+                            if (etOtp != null) {
+                                etOtp.setText(res.devVerificationCode);
+                                etOtp.setSelection(res.devVerificationCode.length());
+                            }
+                        });
+                    }
+                }
+            }
+        };
+        viewModel.getVerificationDispatch().observe(getViewLifecycleOwner(), otpObserver);
+
+        dialog.setOnDismissListener(d -> {
+            cancelOtpCountdown();
+            viewModel.getVerificationDispatch().removeObserver(otpObserver);
+        });
 
         // Start 60-second resend countdown
         startOtpCountdown(tvResend, tvTimer);

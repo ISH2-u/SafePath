@@ -20,6 +20,7 @@ import com.google.android.material.textfield.TextInputLayout;
 import com.safepath.ai.R;
 import com.safepath.ai.activities.LoginActivity;
 import com.safepath.ai.network.dto.UserUpdateRequest;
+import com.safepath.ai.utils.PhoneUtils;
 import com.safepath.ai.viewmodels.ProfileViewModel;
 
 /**
@@ -177,12 +178,20 @@ public class ProfileFragment extends Fragment {
             if (tilEmail != null) tilEmail.setError(null);
         }
 
+        String normPhone = PhoneUtils.normalize(phone);
+        if (!phone.isEmpty() && !PhoneUtils.isValid(normPhone)) {
+            if (tilPhone != null) tilPhone.setError("Enter a valid phone number (7-15 digits)");
+            valid = false;
+        } else {
+            if (tilPhone != null) tilPhone.setError(null);
+        }
+
         if (!valid) return;
 
         UserUpdateRequest req = new UserUpdateRequest();
         req.fullName     = name;
         req.email        = email;
-        req.phone        = phone.isEmpty() ? null : phone;
+        req.phone        = normPhone.isEmpty() ? null : normPhone;
         req.bloodGroup   = blood.isEmpty()  ? null : blood;
         req.medicalNotes = notes.isEmpty()  ? null : notes;
         viewModel.updateProfile(req);

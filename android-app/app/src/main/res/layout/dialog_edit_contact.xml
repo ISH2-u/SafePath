@@ -102,13 +102,29 @@
             android:gravity="center_vertical"
             android:layout_marginBottom="20dp">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Receive SOS Alerts"
-                android:textSize="14sp"
-                android:textColor="?attr/colorOnSurface" />
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvEditSosTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Receive SOS Alerts"
+                    android:textSize="14sp"
+                    android:textColor="?attr/colorOnSurface" />
+
+                <TextView
+                    android:id="@+id/tvEditSosHelp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Dispatches emergency alerts to this contact."
+                    android:textSize="12sp"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+            </LinearLayout>
 
             <androidx.appcompat.widget.SwitchCompat
                 android:id="@+id/switchEditSosAlerts"
@@ -129,7 +145,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginRight="8dp"
+                android:layout_marginEnd="8dp"
                 android:text="Cancel"
                 app:cornerRadius="8dp" />
 
@@ -139,9 +155,9 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:layout_marginStart="8dp"
                 android:text="Save Changes"
                 app:cornerRadius="8dp" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>
-
