@@ -235,8 +235,6 @@
             app:cardBackgroundColor="@color/color_surface"
             app:strokeColor="@color/color_divider"
             app:strokeWidth="1dp"
-            android:clickable="true"
-            android:focusable="true"
             android:layout_marginBottom="12dp">
 
             <LinearLayout
@@ -287,7 +285,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
-                    android:text="Demonstration advisory: Sector B-1 • Risk Level: Moderate (Low street lighting after 9 PM). Tap to view map overlay."
+                    android:text="Demonstration advisory: Sector B-1 • Risk Level: Moderate (Low street lighting after 9 PM)."
                     android:textSize="13sp"
                     android:textColor="@color/color_on_surface_variant" />
             </LinearLayout>

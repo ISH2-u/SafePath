@@ -17,6 +17,7 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavOptions;
 import androidx.navigation.Navigation;
 import com.google.android.material.button.MaterialButton;
 import com.safepath.ai.R;
@@ -184,7 +185,7 @@ public class HomeFragment extends Fragment {
             if (risk != null && tvRiskExplanation != null) {
                 tvRiskExplanation.setText(String.format(
                     Locale.getDefault(),
-                    "%s (%s) · %s. Tap to view safety map.",
+                    "%s (%s) · %s",
                     risk.riskCategory, risk.dataPeriod, risk.safetyGuidance
                 ));
             }
@@ -195,8 +196,12 @@ public class HomeFragment extends Fragment {
         // PROMINENT MANUAL SOS BUTTON
         View btnQuickSos = view.findViewById(R.id.btnQuickSos);
         if (btnQuickSos != null) {
-            btnQuickSos.setOnClickListener(v ->
-                    Navigation.findNavController(v).navigate(R.id.nav_sos));
+            btnQuickSos.setOnClickListener(v -> {
+                NavOptions options = new NavOptions.Builder()
+                        .setLaunchSingleTop(true)
+                        .build();
+                Navigation.findNavController(v).navigate(R.id.nav_sos, null, options);
+            });
         }
 
         // Location permission request button
@@ -208,9 +213,9 @@ public class HomeFragment extends Fragment {
                     }));
         }
 
-        // Navigation cards
-        setNavClick(view, R.id.cardJourneyStatus, R.id.nav_journey);
-        setNavClick(view, R.id.cardAreaRisk, R.id.nav_map);
+        // Navigation cards & Safety Modules
+        // Note: Current Location and Area Safety Assessment are informational status blocks;
+        // Map & Risk and Journey have dedicated bottom-navigation tiles.
         setNavClick(view, R.id.cardContactsStatus, R.id.nav_contacts);
         setNavClick(view, R.id.cardMicStatus, R.id.nav_voice_codeword);
         setNavClick(view, R.id.tileVoiceCodeword, R.id.nav_voice_codeword);
@@ -222,7 +227,12 @@ public class HomeFragment extends Fragment {
     private void setNavClick(View parent, int viewId, int destinationId) {
         View target = parent.findViewById(viewId);
         if (target != null) {
-            target.setOnClickListener(v -> Navigation.findNavController(v).navigate(destinationId));
+            target.setOnClickListener(v -> {
+                NavOptions options = new NavOptions.Builder()
+                        .setLaunchSingleTop(true)
+                        .build();
+                Navigation.findNavController(v).navigate(destinationId, null, options);
+            });
         }
     }
 
