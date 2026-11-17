@@ -31,7 +31,9 @@ target_metadata = Base.metadata
 def get_database_url() -> str:
     url = os.environ.get("DATABASE_URL") or settings.DATABASE_URL
     if url.startswith("postgres://"):
-        url = "postgresql://" + url[len("postgres://"):]
+        url = "postgresql+psycopg2://" + url[len("postgres://"):]
+    elif url.startswith("postgresql://") and not url.startswith("postgresql+"):
+        url = "postgresql+psycopg2://" + url[len("postgresql://"):]
     return url
 
 # other values from the config, defined by the needs of env.py,

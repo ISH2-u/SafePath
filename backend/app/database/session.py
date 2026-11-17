@@ -5,7 +5,9 @@ from app.config import settings
 
 db_url = settings.DATABASE_URL
 if db_url.startswith("postgres://"):
-    db_url = "postgresql://" + db_url[len("postgres://"):]
+    db_url = "postgresql+psycopg2://" + db_url[len("postgres://"):]
+elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+"):
+    db_url = "postgresql+psycopg2://" + db_url[len("postgresql://"):]
 
 if db_url.startswith("sqlite"):
     engine = create_engine(

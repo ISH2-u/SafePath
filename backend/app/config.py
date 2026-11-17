@@ -22,8 +22,11 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL", mode="after")
     @classmethod
     def normalize_db_url(cls, v: str) -> str:
-        if v and v.startswith("postgres://"):
-            return "postgresql://" + v[len("postgres://"):]
+        if v:
+            if v.startswith("postgres://"):
+                return "postgresql+psycopg2://" + v[len("postgres://"):]
+            elif v.startswith("postgresql://") and not v.startswith("postgresql+"):
+                return "postgresql+psycopg2://" + v[len("postgresql://"):]
         return v
 
     # JWT
