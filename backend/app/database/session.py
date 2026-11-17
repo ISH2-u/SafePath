@@ -3,17 +3,24 @@ from sqlalchemy.orm import sessionmaker, Session
 from typing import Generator
 from app.config import settings
 
-if settings.DATABASE_URL.startswith("sqlite"):
+db_url = settings.DATABASE_URL
+if db_url.startswith("postgres://"):
+    db_url = "postgresql+psycopg2://" + db_url[len("postgres://"):]
+elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+"):
+    db_url = "postgresql+psycopg2://" + db_url[len("postgresql://"):]
+
+if db_url.startswith("sqlite"):
     engine = create_engine(
-        settings.DATABASE_URL,
+        db_url,
         connect_args={"check_same_thread": False}
     )
 else:
     engine = create_engine(
-        settings.DATABASE_URL,
+        db_url,
         pool_pre_ping=True,
-        pool_size=10,
-        max_overflow=20
+        pool_recycle=300,
+        pool_size=5,
+        max_overflow=10
     )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

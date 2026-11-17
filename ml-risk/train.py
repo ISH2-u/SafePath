@@ -17,7 +17,11 @@ from src.evaluate import ModelEvaluator
 def generate_synthetic_historical_data(n_cells: int = 50, n_months: int = 36) -> pd.DataFrame:
     """Generates a reproducible longitudinal spatial dataset for training verification."""
     np.random.seed(42)
-    dates = pd.date_range(start="2020-01-01", periods=n_months, freq="M")
+    freq = "ME"
+    try:
+        dates = pd.date_range(start="2020-01-01", periods=n_months, freq=freq)
+    except Exception:
+        dates = pd.date_range(start="2020-01-01", periods=n_months, freq="M")
 
     records = []
     for cell_idx in range(n_cells):

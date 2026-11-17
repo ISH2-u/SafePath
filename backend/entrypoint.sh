@@ -4,7 +4,7 @@ set -e
 echo "=== SafePath AI Production Backend Starting ==="
 
 # Wait for PostgreSQL database connection if a remote database is configured
-if [ -n "$DATABASE_URL" ] && [ "$(echo "$DATABASE_URL" | grep -E '^postgresql')" ]; then
+if [ -n "$DATABASE_URL" ] && [ "$(echo "$DATABASE_URL" | grep -E '^postgres')" ]; then
     echo "Checking database connection..."
     python - << 'EOF'
 import os
@@ -13,6 +13,9 @@ import time
 from sqlalchemy import create_engine
 
 db_url = os.environ.get("DATABASE_URL", "")
+if db_url.startswith("postgres://"):
+    db_url = "postgresql://" + db_url[len("postgres://"):]
+
 max_retries = 30
 retry_interval = 2
 
@@ -35,8 +38,8 @@ echo "Applying database schema migrations (alembic upgrade head)..."
 alembic upgrade head
 echo "Database migrations applied successfully."
 
-# Start uvicorn server with production settings
-WORKERS=${WEB_CONCURRENCY:-2}
+# Start uvicorn server with production settings (default to 1 worker on free-tier 512MB RAM)
+WORKERS=${WEB_CONCURRENCY:-1}
 PORT=${PORT:-8000}
 
 echo "Starting Uvicorn server on port $PORT with $WORKERS worker(s)..."
