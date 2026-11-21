@@ -5,20 +5,25 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputLayout;
 import com.safepath.ai.R;
 import com.safepath.ai.network.ApiConfig;
+import com.safepath.ai.utils.NetworkErrorParser;
 import com.safepath.ai.utils.ServerDialogHelper;
 import com.safepath.ai.viewmodels.AuthViewModel;
 
 /**
  * LoginActivity — Handles user authentication into SafePath AI.
+ * Equipped with live backend connection diagnostics, retry capability,
+ * and clear separation between network connectivity issues and auth failures.
  */
 public class LoginActivity extends AppCompatActivity {
 
@@ -30,7 +35,15 @@ public class LoginActivity extends AppCompatActivity {
     private MaterialButton btnLogin;
     private TextView tvLoginError;
     private ProgressBar progressLogin;
+
+    // Connection Diagnostics Card Views
+    private ImageView ivConnectionStatusDot;
+    private TextView tvConnectionStatusTitle;
+    private ProgressBar progressConnectionCheck;
     private TextView tvServerEndpoint;
+    private TextView tvConnectionDetails;
+    private MaterialButton btnRetryConnection;
+    private MaterialButton btnConfigureServer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +52,7 @@ public class LoginActivity extends AppCompatActivity {
 
         authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
 
+        // Core Auth Views
         etEmail = findViewById(R.id.etEmail);
         etPassword = findViewById(R.id.etPassword);
         tilEmail = findViewById(R.id.tilEmail);
@@ -46,11 +60,36 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin = findViewById(R.id.btnLogin);
         tvLoginError = findViewById(R.id.tvLoginError);
         progressLogin = findViewById(R.id.progressLogin);
-        tvServerEndpoint = findViewById(R.id.tvLoginServerEndpoint);
 
-        updateServerBadge();
+        // Connection Diagnostics Views
+        ivConnectionStatusDot = findViewById(R.id.ivConnectionStatusDot);
+        tvConnectionStatusTitle = findViewById(R.id.tvConnectionStatusTitle);
+        progressConnectionCheck = findViewById(R.id.progressConnectionCheck);
+        tvServerEndpoint = findViewById(R.id.tvLoginServerEndpoint);
+        tvConnectionDetails = findViewById(R.id.tvConnectionDetails);
+        btnRetryConnection = findViewById(R.id.btnRetryConnection);
+        btnConfigureServer = findViewById(R.id.btnConfigureServer);
+
+        updateServerDisplay();
+
+        if (btnRetryConnection != null) {
+            btnRetryConnection.setOnClickListener(v -> checkConnectionStatus(true));
+        }
+
+        if (btnConfigureServer != null) {
+            btnConfigureServer.setOnClickListener(v ->
+                    ServerDialogHelper.show(this, newUrl -> {
+                        updateServerDisplay();
+                        checkConnectionStatus(true);
+                    }));
+        }
+
         if (tvServerEndpoint != null) {
-            tvServerEndpoint.setOnClickListener(v -> ServerDialogHelper.show(this, newUrl -> updateServerBadge()));
+            tvServerEndpoint.setOnClickListener(v ->
+                    ServerDialogHelper.show(this, newUrl -> {
+                        updateServerDisplay();
+                        checkConnectionStatus(true);
+                    }));
         }
 
         if (btnLogin != null) {
@@ -72,12 +111,85 @@ public class LoginActivity extends AppCompatActivity {
         }
 
         observeViewModel();
+
+        // Perform initial backend health check on screen load
+        checkConnectionStatus(false);
     }
 
-    private void updateServerBadge() {
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateServerDisplay();
+    }
+
+    private void updateServerDisplay() {
         if (tvServerEndpoint != null) {
-            tvServerEndpoint.setText("Server: " + ApiConfig.getBaseUrl() + " (tap to configure)");
+            tvServerEndpoint.setText("Target: " + ApiConfig.getBaseUrl() + " (tap to configure)");
         }
+    }
+
+    /**
+     * Checks backend health asynchronously and updates the diagnostics card accordingly.
+     * @param userInitiated true if triggered by the user tapping "Retry Connection" or configuring server.
+     */
+    private void checkConnectionStatus(boolean userInitiated) {
+        if (tvConnectionStatusTitle != null) {
+            tvConnectionStatusTitle.setText("Checking backend connection...");
+        }
+        if (ivConnectionStatusDot != null) {
+            ivConnectionStatusDot.setColorFilter(ContextCompat.getColor(this, R.color.color_inactive_grey));
+        }
+        if (progressConnectionCheck != null) {
+            progressConnectionCheck.setVisibility(View.VISIBLE);
+        }
+        if (btnRetryConnection != null) {
+            btnRetryConnection.setEnabled(false);
+        }
+
+        String targetUrl = ApiConfig.getBaseUrl();
+        ServerDialogHelper.checkHealth(targetUrl, (healthy, statusCode, message) -> {
+            if (isFinishing() || isDestroyed()) return;
+
+            if (progressConnectionCheck != null) {
+                progressConnectionCheck.setVisibility(View.GONE);
+            }
+            if (btnRetryConnection != null) {
+                btnRetryConnection.setEnabled(true);
+            }
+
+            if (healthy) {
+                if (ivConnectionStatusDot != null) {
+                    ivConnectionStatusDot.setColorFilter(ContextCompat.getColor(this, R.color.color_safe_green));
+                }
+                if (tvConnectionStatusTitle != null) {
+                    tvConnectionStatusTitle.setText("Backend Connected (HTTP " + statusCode + ")");
+                }
+                if (tvConnectionDetails != null) {
+                    tvConnectionDetails.setVisibility(View.GONE);
+                }
+                // If previous error was connection-related, clear it
+                if (tvLoginError != null && NetworkErrorParser.isConnectivityErrorMessage(tvLoginError.getText().toString())) {
+                    tvLoginError.setVisibility(View.GONE);
+                }
+                if (userInitiated) {
+                    Toast.makeText(this, "✅ " + message, Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                if (ivConnectionStatusDot != null) {
+                    ivConnectionStatusDot.setColorFilter(ContextCompat.getColor(this, R.color.color_danger_red));
+                }
+                if (tvConnectionStatusTitle != null) {
+                    tvConnectionStatusTitle.setText("Backend Unreachable");
+                }
+                if (tvConnectionDetails != null) {
+                    tvConnectionDetails.setText(message);
+                    tvConnectionDetails.setVisibility(View.VISIBLE);
+                }
+                if (userInitiated) {
+                    Toast.makeText(this, "❌ Backend unreachable. Check USB & ADB reverse.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
     }
 
     private void observeViewModel() {
@@ -93,16 +205,43 @@ public class LoginActivity extends AppCompatActivity {
         });
 
         authViewModel.getErrorMessage().observe(this, error -> {
-            if (tvLoginError != null) {
-                if (error != null && !error.isEmpty()) {
-                    tvLoginError.setText(error);
-                    tvLoginError.setVisibility(View.VISIBLE);
+            if (error != null && !error.isEmpty()) {
+                if (NetworkErrorParser.isConnectivityErrorMessage(error)) {
+                    // Connectivity failure: backend could not be reached
+                    if (ivConnectionStatusDot != null) {
+                        ivConnectionStatusDot.setColorFilter(ContextCompat.getColor(this, R.color.color_danger_red));
+                    }
+                    if (tvConnectionStatusTitle != null) {
+                        tvConnectionStatusTitle.setText("Backend Unreachable");
+                    }
+                    if (tvConnectionDetails != null) {
+                        tvConnectionDetails.setText(error);
+                        tvConnectionDetails.setVisibility(View.VISIBLE);
+                    }
+                    if (tvLoginError != null) {
+                        tvLoginError.setVisibility(View.GONE);
+                    }
                 } else {
+                    // Application / Authentication failure: backend IS reached, but credentials rejected
+                    if (ivConnectionStatusDot != null) {
+                        ivConnectionStatusDot.setColorFilter(ContextCompat.getColor(this, R.color.color_safe_green));
+                    }
+                    if (tvConnectionStatusTitle != null) {
+                        tvConnectionStatusTitle.setText("Backend Connected");
+                    }
+                    if (tvConnectionDetails != null) {
+                        tvConnectionDetails.setVisibility(View.GONE);
+                    }
+                    if (tvLoginError != null) {
+                        tvLoginError.setText(error);
+                        tvLoginError.setVisibility(View.VISIBLE);
+                    }
+                }
+                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+            } else {
+                if (tvLoginError != null) {
                     tvLoginError.setVisibility(View.GONE);
                 }
-            }
-            if (error != null && !error.isEmpty()) {
-                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
             }
         });
 

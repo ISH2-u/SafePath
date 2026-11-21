@@ -40,19 +40,115 @@
             android:textColor="@color/color_on_surface_variant"
             android:gravity="center" />
 
-        <TextView
-            android:id="@+id/tvLoginServerEndpoint"
-            android:layout_width="wrap_content"
+        <!-- Connection Status & Diagnostics Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardConnectionStatus"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:textSize="11sp"
-            android:textColor="@color/color_primary"
-            android:background="@drawable/bg_endpoint_badge"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="4dp"
-            android:gravity="center" />
+            android:layout_marginTop="12dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/color_divider"
+            app:cardBackgroundColor="@color/color_surface">
 
-        <!-- Error message -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <!-- Header row: Status Icon + Status Text + Progress Spinner -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:id="@+id/ivConnectionStatusDot"
+                        android:layout_width="10dp"
+                        android:layout_height="10dp"
+                        android:src="@drawable/ic_status_dot"
+                        app:tint="@color/color_inactive_grey"
+                        android:contentDescription="@string/server_connection" />
+
+                    <TextView
+                        android:id="@+id/tvConnectionStatusTitle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:text="Checking backend connection..."
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/color_on_surface" />
+
+                    <ProgressBar
+                        android:id="@+id/progressConnectionCheck"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:indeterminateTint="@color/color_primary"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <!-- Target URL / subtitle -->
+                <TextView
+                    android:id="@+id/tvLoginServerEndpoint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textSize="11sp"
+                    android:textColor="@color/color_on_surface_variant" />
+
+                <!-- Diagnostic details & troubleshooting message (visible on error) -->
+                <TextView
+                    android:id="@+id/tvConnectionDetails"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textSize="12sp"
+                    android:textColor="@color/color_sos_red"
+                    android:lineSpacingExtra="2dp"
+                    android:visibility="gone" />
+
+                <!-- Action buttons: Retry Connection & Server Settings -->
+                <LinearLayout
+                    android:id="@+id/layoutConnectionActions"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="10dp"
+                    android:gravity="end">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnConfigureServer"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="Configure"
+                        android:textSize="12sp"
+                        android:textColor="@color/color_primary"
+                        android:paddingHorizontal="8dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnRetryConnection"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_marginStart="8dp"
+                        android:text="Retry Connection"
+                        android:textSize="12sp"
+                        android:textColor="@color/color_primary"
+                        app:strokeColor="@color/color_primary"
+                        app:cornerRadius="8dp"
+                        android:paddingHorizontal="12dp" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Form / Credential error message -->
         <TextView
             android:id="@+id/tvLoginError"
             android:layout_width="match_parent"

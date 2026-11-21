@@ -2,6 +2,7 @@ package com.safepath.ai.network;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Build;
 import com.safepath.ai.BuildConfig;
 
 /**
@@ -34,8 +35,14 @@ public final class ApiConfig {
     public static void init(Context context) {
         if (context == null) return;
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        runtimeHost = prefs.getString(KEY_CUSTOM_HOST, null);
-        runtimePort = prefs.getString(KEY_CUSTOM_PORT, null);
+        String savedHost = prefs.getString(KEY_CUSTOM_HOST, null);
+        String savedPort = prefs.getString(KEY_CUSTOM_PORT, null);
+        if (savedHost != null && !savedHost.trim().isEmpty()) {
+            runtimeHost = savedHost.trim();
+        }
+        if (savedPort != null && !savedPort.trim().isEmpty()) {
+            runtimePort = savedPort.trim();
+        }
     }
 
     public static String getBaseUrl() {
@@ -75,7 +82,7 @@ public final class ApiConfig {
         if (BuildConfig.SERVER_HOST != null && !BuildConfig.SERVER_HOST.isEmpty()) {
             return BuildConfig.SERVER_HOST;
         }
-        return DEFAULT_USB_HOST;
+        return isEmulator() ? DEFAULT_EMULATOR_HOST : DEFAULT_USB_HOST;
     }
 
     public static String getPort() {
@@ -88,8 +95,23 @@ public final class ApiConfig {
         return DEFAULT_PORT;
     }
 
+    public static String getCustomHost() {
+        return runtimeHost;
+    }
+
     public static String getLanHost() {
-        return DEFAULT_EMULATOR_HOST;
+        return isEmulator() ? DEFAULT_EMULATOR_HOST : DEFAULT_USB_HOST;
+    }
+
+    public static boolean isEmulator() {
+        return (Build.FINGERPRINT.startsWith("generic")
+                || Build.FINGERPRINT.startsWith("unknown")
+                || Build.MODEL.contains("google_sdk")
+                || Build.MODEL.contains("Emulator")
+                || Build.MODEL.contains("Android SDK built for x86")
+                || Build.MANUFACTURER.contains("Genymotion")
+                || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
+                || "google_sdk".equals(Build.PRODUCT));
     }
 
     public static synchronized void setRuntimeHost(String host) {

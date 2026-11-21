@@ -12,6 +12,7 @@ import java.io.IOException;
  *
  * If connecting via 127.0.0.1 fails (e.g. phone disconnected from USB), automatically retries using the laptop's LAN IP.
  * If connecting via LAN IP fails (e.g. router isolation or IP change), automatically retries using 127.0.0.1 (ADB reverse).
+ * Prevents hanging on physical devices by never attempting 10.0.2.2 outside of emulators.
  */
 public class DevFallbackInterceptor implements Interceptor {
 
@@ -28,7 +29,17 @@ public class DevFallbackInterceptor implements Interceptor {
             String fallbackHost = null;
 
             if ("127.0.0.1".equals(currentHost) || "localhost".equals(currentHost)) {
-                fallbackHost = ApiConfig.getLanHost();
+                if (ApiConfig.isEmulator()) {
+                    fallbackHost = ApiConfig.DEFAULT_EMULATOR_HOST;
+                } else {
+                    String customHost = ApiConfig.getCustomHost();
+                    if (customHost != null && !customHost.isEmpty()
+                            && !customHost.equals("127.0.0.1")
+                            && !customHost.equals("localhost")
+                            && !customHost.equals("10.0.2.2")) {
+                        fallbackHost = customHost;
+                    }
+                }
             } else if (currentHost.startsWith("10.") || currentHost.startsWith("192.168.") || currentHost.startsWith("172.")) {
                 fallbackHost = ApiConfig.DEFAULT_USB_HOST;
             }

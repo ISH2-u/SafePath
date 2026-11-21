@@ -28,6 +28,7 @@
     <string name="demo_data_disclaimer">Notice: Below information is sample data for interface demonstration. Connect backend for real-time telemetry.</string>
 
     <!-- Auth -->
+    <string name="server_connection">Server Connection</string>
     <string name="login_title">Welcome Back</string>
     <string name="login_subtitle">Sign in to activate your personal safety shield</string>
     <string name="register_title">Create SafePath Account</string>
