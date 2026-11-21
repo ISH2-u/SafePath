@@ -112,6 +112,15 @@ public class JourneyViewModel extends AndroidViewModel {
         }
     };
 
+    private final BroadcastReceiver providerReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent != null && LocationManager.PROVIDERS_CHANGED_ACTION.equals(intent.getAction())) {
+                checkLocationProviderStatus();
+            }
+        }
+    };
+
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     public JourneyViewModel(@NonNull Application application) {
         super(application);
@@ -126,6 +135,13 @@ public class JourneyViewModel extends AndroidViewModel {
             application.registerReceiver(locationReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
         } else {
             application.registerReceiver(locationReceiver, filter);
+        }
+
+        IntentFilter providerFilter = new IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            application.registerReceiver(providerReceiver, providerFilter, Context.RECEIVER_EXPORTED);
+        } else {
+            application.registerReceiver(providerReceiver, providerFilter);
         }
 
         checkExistingActiveJourney();
@@ -153,6 +169,19 @@ public class JourneyViewModel extends AndroidViewModel {
         }
     }
 
+    private boolean isLocationServicesEnabled(LocationManager lm) {
+        if (lm == null) return false;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            return lm.isLocationEnabled();
+        } else {
+            boolean gps = false;
+            boolean net = false;
+            try { gps = lm.isProviderEnabled(LocationManager.GPS_PROVIDER); } catch (Exception ignored) {}
+            try { net = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER); } catch (Exception ignored) {}
+            return gps || net;
+        }
+    }
+
     /**
      * Starts continuous GPS telemetry acquisition for foreground fragments (Home / Map).
      */
@@ -168,15 +197,9 @@ public class JourneyViewModel extends AndroidViewModel {
         }
 
         LocationManager lm = (LocationManager) ctx.getSystemService(Context.LOCATION_SERVICE);
-        boolean gpsEnabled = false;
-        boolean networkEnabled = false;
-        if (lm != null) {
-            try { gpsEnabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER); } catch (Exception ignored) {}
-            try { networkEnabled = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER); } catch (Exception ignored) {}
-        }
-
-        if (!gpsEnabled && !networkEnabled) {
+        if (!isLocationServicesEnabled(lm)) {
             locationStatus.postValue(LocationStatus.LOCATION_DISABLED);
+            stopForegroundLocationUpdates();
             return;
         }
 
@@ -243,9 +266,28 @@ public class JourneyViewModel extends AndroidViewModel {
             // Keep background journey tracking alive
             return;
         }
+        stopForegroundLocationUpdates();
+    }
+
+    private void stopForegroundLocationUpdates() {
         if (fusedLocationClient != null && foregroundLocationCallback != null && isForegroundRequesting) {
             fusedLocationClient.removeLocationUpdates(foregroundLocationCallback);
             isForegroundRequesting = false;
+        }
+    }
+
+    public void checkLocationProviderStatus() {
+        Context ctx = getApplication().getApplicationContext();
+        LocationManager lm = (LocationManager) ctx.getSystemService(Context.LOCATION_SERVICE);
+        if (!isLocationServicesEnabled(lm)) {
+            locationStatus.postValue(LocationStatus.LOCATION_DISABLED);
+            stopForegroundLocationUpdates();
+        } else {
+            boolean fine = ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+            boolean coarse = ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+            if (fine || coarse) {
+                startLocationUpdates();
+            }
         }
     }
 
@@ -366,6 +408,9 @@ public class JourneyViewModel extends AndroidViewModel {
         stopLocationUpdates();
         try {
             getApplication().unregisterReceiver(locationReceiver);
+        } catch (Exception ignored) {}
+        try {
+            getApplication().unregisterReceiver(providerReceiver);
         } catch (Exception ignored) {}
     }
 }

@@ -3,6 +3,7 @@ package com.safepath.ai.fragments;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -37,6 +38,7 @@ public class HomeFragment extends Fragment {
     private TextView tvJourneyBadge;
     private TextView tvJourneyDetail;
     private TextView tvRiskExplanation;
+    private TextView badgeRiskStatus;
     private MaterialButton btnGrantLocationPermission;
 
     private JourneyViewModel journeyViewModel;
@@ -70,6 +72,7 @@ public class HomeFragment extends Fragment {
         tvJourneyBadge             = view.findViewById(R.id.tvJourneyBadge);
         tvJourneyDetail            = view.findViewById(R.id.tvJourneyDetail);
         tvRiskExplanation          = view.findViewById(R.id.tvRiskExplanation);
+        badgeRiskStatus            = view.findViewById(R.id.badgeRiskStatus);
         btnGrantLocationPermission = view.findViewById(R.id.btnGrantLocationPermission);
 
         journeyViewModel = new ViewModelProvider(requireActivity()).get(JourneyViewModel.class);
@@ -188,6 +191,24 @@ public class HomeFragment extends Fragment {
                     "%s (%s) · %s",
                     risk.riskCategory, risk.dataPeriod, risk.safetyGuidance
                 ));
+                if (badgeRiskStatus != null && risk.riskCode != null && getContext() != null) {
+                    badgeRiskStatus.setText(risk.riskCode);
+                    if (risk.colorIndicator != null && !risk.colorIndicator.isEmpty()) {
+                        try {
+                            badgeRiskStatus.setTextColor(Color.parseColor(risk.colorIndicator));
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+        });
+
+        riskViewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
+            if (error != null && riskViewModel.getAreaRisk().getValue() == null && tvRiskExplanation != null) {
+                tvRiskExplanation.setText("Area risk telemetry currently unavailable. Check backend connection.");
+                if (badgeRiskStatus != null && getContext() != null) {
+                    badgeRiskStatus.setText("OFFLINE");
+                    badgeRiskStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_on_surface_variant));
+                }
             }
         });
     }
@@ -214,8 +235,9 @@ public class HomeFragment extends Fragment {
         }
 
         // Navigation cards & Safety Modules
-        // Note: Current Location and Area Safety Assessment are informational status blocks;
-        // Map & Risk and Journey have dedicated bottom-navigation tiles.
+        setNavClick(view, R.id.cardLocation, R.id.nav_map);
+        setNavClick(view, R.id.cardAreaRisk, R.id.nav_map);
+        setNavClick(view, R.id.cardJourneyStatus, R.id.nav_journey);
         setNavClick(view, R.id.cardContactsStatus, R.id.nav_contacts);
         setNavClick(view, R.id.cardMicStatus, R.id.nav_voice_codeword);
         setNavClick(view, R.id.tileVoiceCodeword, R.id.nav_voice_codeword);

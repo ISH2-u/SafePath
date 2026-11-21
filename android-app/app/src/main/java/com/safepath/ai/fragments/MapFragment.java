@@ -39,6 +39,7 @@ import org.maplibre.android.maps.MapView;
 import org.maplibre.android.maps.MapLibreMap;
 import org.maplibre.android.maps.OnMapReadyCallback;
 import org.maplibre.android.maps.Style;
+import org.maplibre.android.style.layers.FillLayer;
 import org.maplibre.android.style.layers.LineLayer;
 import org.maplibre.android.style.layers.Property;
 import org.maplibre.android.style.layers.PropertyFactory;
@@ -47,6 +48,7 @@ import org.maplibre.geojson.Feature;
 import org.maplibre.geojson.FeatureCollection;
 import org.maplibre.geojson.LineString;
 import org.maplibre.geojson.Point;
+import org.maplibre.geojson.Polygon;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -78,6 +80,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     private static final String ROUTE_SOURCE_ID = "journey-route-source";
     private static final String ROUTE_LAYER_ID  = "journey-route-layer";
+
+    private static final String RISK_SOURCE_ID = "risk-zone-source";
+    private static final String RISK_FILL_LAYER_ID = "risk-zone-fill-layer";
+    private static final String RISK_LINE_LAYER_ID = "risk-zone-line-layer";
 
     private MapView mapView;
     private MapLibreMap mapLibreMap;
@@ -177,6 +183,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                         centerCameraOn(location.getLatitude(), location.getLongitude(), 15.0);
                         isCameraInitialized = true;
                     }
+                    updateRiskZoneOverlay();
                 }
 
                 // Query Area Risk from FastAPI backend
@@ -256,6 +263,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 } catch (Exception e) {
                     viewRiskColorPill.setBackgroundColor(Color.GRAY);
                 }
+                updateRiskZoneOverlay();
             }
         });
 
@@ -341,6 +349,26 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         this.mapLibreMap = map;
 
         map.setStyle(new Style.Builder().fromJson(OSM_STYLE_JSON), style -> {
+            // Risk Zone overlay layers
+            GeoJsonSource riskSource = new GeoJsonSource(RISK_SOURCE_ID);
+            style.addSource(riskSource);
+
+            FillLayer riskFillLayer = new FillLayer(RISK_FILL_LAYER_ID, RISK_SOURCE_ID);
+            riskFillLayer.setProperties(
+                    PropertyFactory.fillColor(Color.parseColor("#4CAF50")),
+                    PropertyFactory.fillOpacity(0.18f)
+            );
+            style.addLayer(riskFillLayer);
+
+            LineLayer riskLineLayer = new LineLayer(RISK_LINE_LAYER_ID, RISK_SOURCE_ID);
+            riskLineLayer.setProperties(
+                    PropertyFactory.lineColor(Color.parseColor("#4CAF50")),
+                    PropertyFactory.lineWidth(2.0f),
+                    PropertyFactory.lineOpacity(0.6f)
+            );
+            style.addLayer(riskLineLayer);
+
+            // Active Journey Route layer
             GeoJsonSource routeSource = new GeoJsonSource(ROUTE_SOURCE_ID);
             style.addSource(routeSource);
 
@@ -353,10 +381,13 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             );
             style.addLayer(routeLayer);
 
-            if (lastLocation != null) {
-                updateUserMarker(lastLocation.getLatitude(), lastLocation.getLongitude());
-                centerCameraOn(lastLocation.getLatitude(), lastLocation.getLongitude(), 15.0);
+            Location currentLoc = (lastLocation != null) ? lastLocation : journeyViewModel.getCurrentLocation().getValue();
+            if (currentLoc != null) {
+                lastLocation = currentLoc;
+                updateUserMarker(currentLoc.getLatitude(), currentLoc.getLongitude());
+                centerCameraOn(currentLoc.getLatitude(), currentLoc.getLongitude(), 15.0);
                 isCameraInitialized = true;
+                updateRiskZoneOverlay();
             } else {
                 centerCameraOn(20.5937, 78.9629, 4.5);
             }
@@ -366,6 +397,54 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 updateRoutePolyline(active);
             }
         });
+    }
+
+    private Polygon createCirclePolygon(double centerLat, double centerLng, double radiusKm, int points) {
+        List<Point> ring = new ArrayList<>();
+        double earthRadiusKm = 6371.0;
+        double dByR = radiusKm / earthRadiusKm;
+        double latRad = Math.toRadians(centerLat);
+        double lngRad = Math.toRadians(centerLng);
+
+        for (int i = 0; i <= points; i++) {
+            double bearing = 2.0 * Math.PI * i / points;
+            double pLatRad = Math.asin(Math.sin(latRad) * Math.cos(dByR) +
+                    Math.cos(latRad) * Math.sin(dByR) * Math.cos(bearing));
+            double pLngRad = lngRad + Math.atan2(Math.sin(bearing) * Math.sin(dByR) * Math.cos(latRad),
+                    Math.cos(dByR) - Math.sin(latRad) * Math.sin(pLatRad));
+            ring.add(Point.fromLngLat(Math.toDegrees(pLngRad), Math.toDegrees(pLatRad)));
+        }
+        List<List<Point>> coordinates = new ArrayList<>();
+        coordinates.add(ring);
+        return Polygon.fromLngLats(coordinates);
+    }
+
+    private void updateRiskZoneOverlay() {
+        if (mapLibreMap == null) return;
+        Style style = mapLibreMap.getStyle();
+        if (style == null) return;
+
+        GeoJsonSource source = style.getSourceAs(RISK_SOURCE_ID);
+        if (source == null) return;
+
+        if (lastLocation != null) {
+            Polygon circle = createCirclePolygon(lastLocation.getLatitude(), lastLocation.getLongitude(), 1.0, 64);
+            source.setGeoJson(FeatureCollection.fromFeature(Feature.fromGeometry(circle)));
+
+            String colorStr = (currentRisk != null && currentRisk.colorIndicator != null && !currentRisk.colorIndicator.isEmpty())
+                    ? currentRisk.colorIndicator : "#4CAF50";
+            try {
+                int color = Color.parseColor(colorStr);
+                FillLayer fillLayer = style.getLayerAs(RISK_FILL_LAYER_ID);
+                if (fillLayer != null) {
+                    fillLayer.setProperties(PropertyFactory.fillColor(color));
+                }
+                LineLayer lineLayer = style.getLayerAs(RISK_LINE_LAYER_ID);
+                if (lineLayer != null) {
+                    lineLayer.setProperties(PropertyFactory.lineColor(color));
+                }
+            } catch (Exception ignored) {}
+        }
     }
 
     private void updateRoutePolyline(Journey journey) {
@@ -438,5 +517,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         super.onDestroyView();
         mapView.onDestroy();
         userMarker = null;
+        isCameraInitialized = false;
     }
 }
