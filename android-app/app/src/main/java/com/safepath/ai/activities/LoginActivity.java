@@ -9,6 +9,7 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.safepath.ai.BuildConfig;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
@@ -71,6 +72,11 @@ public class LoginActivity extends AppCompatActivity {
         btnConfigureServer = findViewById(R.id.btnConfigureServer);
 
         updateServerDisplay();
+
+        if (BuildConfig.DEBUG && etEmail != null && etPassword != null) {
+            etEmail.setText("sagnik@safepath.local");
+            etPassword.setText("Password123!");
+        }
 
         if (btnRetryConnection != null) {
             btnRetryConnection.setOnClickListener(v -> checkConnectionStatus(true));
