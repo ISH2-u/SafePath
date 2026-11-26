@@ -36,11 +36,13 @@
     <color name="color_danger_red">#DC2626</color>
     <color name="color_inactive_grey">#94A3B8</color>
 
-    <!-- Area Risk Indicators -->
+    <!-- Area Risk Indicators (5-tier H3 Color Scheme) -->
     <color name="color_low_risk">#16A34A</color>
-    <color name="color_moderate_risk">#D97706</color>
-    <color name="color_high_risk">#DC2626</color>
-    <color name="color_insufficient_data">#64748B</color>
+    <color name="color_moderate_risk">#EAB308</color>
+    <color name="color_high_risk">#F97316</color>
+    <color name="color_very_high_risk">#EF4444</color>
+    <color name="color_insufficient_data">#94A3B8</color>
+    <color name="color_risk_no_data">#94A3B8</color>
 
     <!-- Nav Colors -->
     <color name="nav_selected">#1E3A8A</color>
