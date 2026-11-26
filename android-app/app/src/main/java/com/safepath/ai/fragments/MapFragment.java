@@ -10,7 +10,6 @@ import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
@@ -26,8 +25,6 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.safepath.ai.R;
 import com.safepath.ai.models.Journey;
 import com.safepath.ai.network.dto.AreaRiskDto;
-import com.safepath.ai.network.dto.H3CellRiskDto;
-import com.safepath.ai.network.dto.H3GridRiskDto;
 import com.safepath.ai.viewmodels.JourneyViewModel;
 import com.safepath.ai.viewmodels.RiskViewModel;
 import org.json.JSONArray;
@@ -42,7 +39,6 @@ import org.maplibre.android.maps.MapView;
 import org.maplibre.android.maps.MapLibreMap;
 import org.maplibre.android.maps.OnMapReadyCallback;
 import org.maplibre.android.maps.Style;
-import org.maplibre.android.style.expressions.Expression;
 import org.maplibre.android.style.layers.FillLayer;
 import org.maplibre.android.style.layers.LineLayer;
 import org.maplibre.android.style.layers.Property;
@@ -54,13 +50,12 @@ import org.maplibre.geojson.LineString;
 import org.maplibre.geojson.Point;
 import org.maplibre.geojson.Polygon;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
 /**
  * MapFragment — OpenStreetMap integration via MapLibre, displaying user GPS telemetry,
- * active journey polyline routing, and multi-cell H3 hexagonal risk grid visualization.
+ * active journey polyline routing, and circular geographical risk-radius visualization.
  */
 public class MapFragment extends Fragment implements OnMapReadyCallback {
 
@@ -86,12 +81,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private static final String ROUTE_SOURCE_ID = "journey-route-source";
     private static final String ROUTE_LAYER_ID  = "journey-route-layer";
 
-    private static final String H3_GRID_SOURCE_ID = "h3-grid-source";
-    private static final String H3_GRID_FILL_LAYER_ID = "h3-grid-fill-layer";
-    private static final String H3_GRID_LINE_LAYER_ID = "h3-grid-line-layer";
-
-    private static final String H3_SELECTED_SOURCE_ID = "h3-selected-source";
-    private static final String H3_SELECTED_LINE_LAYER_ID = "h3-selected-line-layer";
+    private static final String RISK_SOURCE_ID = "risk-zone-source";
+    private static final String RISK_FILL_LAYER_ID = "risk-zone-fill-layer";
+    private static final String RISK_LINE_LAYER_ID = "risk-zone-line-layer";
 
     private MapView mapView;
     private MapLibreMap mapLibreMap;
@@ -103,25 +95,14 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private TextView tvMapRouteStatus;
     private TextView tvMapAccuracyDisclosed;
     private TextView tvRiskCategoryTitle;
-    private TextView tvRiskGridSummary;
+    private TextView tvRiskSubtitle;
     private View viewRiskColorPill;
     private MaterialCardView cardAreaRisk;
     private MaterialCardView cardMapPermissionWarning;
     private FloatingActionButton fabCenterLocation;
 
-    // Selected Cell Inspector Card views
-    private MaterialCardView cardSelectedCell;
-    private View viewSelectedCellColor;
-    private TextView tvSelectedCellTitle;
-    private TextView tvSelectedCellId;
-    private TextView tvSelectedCellRisk;
-    private TextView tvSelectedCellIncidents;
-    private TextView tvSelectedCellPeriod;
-    private ImageView btnCloseSelectedCell;
-
     private Location lastLocation = null;
     private AreaRiskDto currentRisk = null;
-    private H3GridRiskDto currentH3Grid = null;
     private boolean isCameraInitialized = false;
 
     private final ActivityResultLauncher<String[]> locationPermissionLauncher =
@@ -159,20 +140,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         tvMapRouteStatus = view.findViewById(R.id.tvMapRouteStatus);
         tvMapAccuracyDisclosed = view.findViewById(R.id.tvMapAccuracyDisclosed);
         tvRiskCategoryTitle = view.findViewById(R.id.tvRiskCategoryTitle);
-        tvRiskGridSummary = view.findViewById(R.id.tvRiskGridSummary);
+        tvRiskSubtitle = view.findViewById(R.id.tvRiskSubtitle);
         viewRiskColorPill = view.findViewById(R.id.viewRiskColorPill);
         cardAreaRisk = view.findViewById(R.id.cardAreaRisk);
         cardMapPermissionWarning = view.findViewById(R.id.cardMapPermissionWarning);
         fabCenterLocation = view.findViewById(R.id.fabCenterLocation);
-
-        cardSelectedCell = view.findViewById(R.id.cardSelectedCell);
-        viewSelectedCellColor = view.findViewById(R.id.viewSelectedCellColor);
-        tvSelectedCellTitle = view.findViewById(R.id.tvSelectedCellTitle);
-        tvSelectedCellId = view.findViewById(R.id.tvSelectedCellId);
-        tvSelectedCellRisk = view.findViewById(R.id.tvSelectedCellRisk);
-        tvSelectedCellIncidents = view.findViewById(R.id.tvSelectedCellIncidents);
-        tvSelectedCellPeriod = view.findViewById(R.id.tvSelectedCellPeriod);
-        btnCloseSelectedCell = view.findViewById(R.id.btnCloseSelectedCell);
 
         mapView.onCreate(savedInstanceState);
         mapView.getMapAsync(this);
@@ -211,10 +183,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                         centerCameraOn(location.getLatitude(), location.getLongitude(), 15.0);
                         isCameraInitialized = true;
                     }
+                    updateRiskZoneOverlay();
                 }
 
-                // Query multi-cell H3 Grid and Area Risk from FastAPI backend
-                riskViewModel.fetchH3GridRisk(location.getLatitude(), location.getLongitude(), 2.0, 8);
+                // Query Area Risk from FastAPI backend for 1.0 km circular area
                 riskViewModel.fetchAreaRisk(location.getLatitude(), location.getLongitude(), 1.0);
             }
         });
@@ -278,48 +250,27 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             }
         });
 
-        // Area Risk Observer (Single point summary)
+        // Area Risk Observer (Circular zone)
         riskViewModel.getAreaRisk().observe(getViewLifecycleOwner(), riskDto -> {
             if (riskDto != null) {
                 currentRisk = riskDto;
-            }
-        });
-
-        // H3 Hexagonal Grid Observer
-        riskViewModel.getH3GridRisk().observe(getViewLifecycleOwner(), gridDto -> {
-            if (gridDto != null) {
-                currentH3Grid = gridDto;
-                tvRiskCategoryTitle.setText(String.format(Locale.getDefault(),
-                        "Current Cell: %s", gridDto.currentRiskCategory));
-                tvRiskGridSummary.setText(String.format(Locale.getDefault(),
-                        "H3 Grid: %d cells · %d with data · %d no data",
-                        gridDto.totalCells, gridDto.cellsWithData, gridDto.cellsNoData));
+                tvRiskCategoryTitle.setText(riskDto.riskCategory);
+                tvRiskSubtitle.setText(String.format("1.0 km radius · %s", riskDto.incidentSummary));
 
                 try {
-                    int pillColor = Color.parseColor(gridDto.currentColorIndicator);
+                    int pillColor = Color.parseColor(riskDto.colorIndicator);
                     viewRiskColorPill.setBackgroundColor(pillColor);
                 } catch (Exception e) {
                     viewRiskColorPill.setBackgroundColor(Color.GRAY);
                 }
-
-                renderH3GridOverlay(gridDto);
-            }
-        });
-
-        // Selected Cell Observer
-        riskViewModel.getSelectedCell().observe(getViewLifecycleOwner(), cell -> {
-            if (cell != null) {
-                displaySelectedCellInfo(cell);
-            } else {
-                cardSelectedCell.setVisibility(View.GONE);
-                clearSelectedHighlight();
+                updateRiskZoneOverlay();
             }
         });
 
         riskViewModel.getErrorMessage().observe(getViewLifecycleOwner(), err -> {
-            if (err != null && !err.isEmpty() && currentH3Grid == null) {
+            if (err != null && !err.isEmpty() && currentRisk == null) {
                 tvRiskCategoryTitle.setText("Insufficient data");
-                tvRiskGridSummary.setText("H3 risk telemetry currently unavailable");
+                tvRiskSubtitle.setText("Area risk telemetry currently unavailable");
                 viewRiskColorPill.setBackgroundColor(Color.LTGRAY);
             }
         });
@@ -350,8 +301,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
         cardAreaRisk.setOnClickListener(v -> showRiskDetailsDialog());
 
-        btnCloseSelectedCell.setOnClickListener(v -> riskViewModel.clearSelectedCell());
-
         View btnEnable = root.findViewById(R.id.btnMapEnableLocation);
         if (btnEnable != null) {
             btnEnable.setOnClickListener(v -> locationPermissionLauncher.launch(new String[]{
@@ -368,38 +317,28 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     }
 
     private void showRiskDetailsDialog() {
-        if (currentH3Grid == null && currentRisk == null) {
+        if (currentRisk == null) {
             Toast.makeText(requireContext(), "Area risk information loading...", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        String category = currentH3Grid != null ? currentH3Grid.currentRiskCategory : (currentRisk != null ? currentRisk.riskCategory : "N/A");
-        String guidance = currentRisk != null ? currentRisk.safetyGuidance : "Maintain standard personal alertness and stay on well-lit thoroughfares.";
-        String lastUpdatedDate = currentH3Grid != null && currentH3Grid.lastUpdated != null && currentH3Grid.lastUpdated.length() >= 10
-                ? currentH3Grid.lastUpdated.substring(0, 10) : "Recent";
-        int total = currentH3Grid != null ? currentH3Grid.totalCells : 19;
-        int withData = currentH3Grid != null ? currentH3Grid.cellsWithData : 19;
-        int noData = currentH3Grid != null ? currentH3Grid.cellsNoData : 0;
+        String lastUpdatedDate = currentRisk.lastUpdated != null && currentRisk.lastUpdated.length() >= 10
+                ? currentRisk.lastUpdated.substring(0, 10) : "Recent";
 
-        String message = String.format(Locale.getDefault(),
-                "Current Location Risk: %s\n"
-                + "Spatial Index: %s (H3 Res 8)\n\n"
-                + "Grid Scope: %d contiguous cells analyzed\n"
-                + "• Cells with baseline data: %d\n"
-                + "• Unindexed cells: %d\n\n"
-                + "Safety Guidance:\n%s\n\n"
-                + "Data Baseline: Historical Police & Open Data Records\n"
-                + "Last Updated: %s\n\n"
-                + "Mandatory Disclaimer:\nSafePath AI displays historical patterns for situational awareness. It never guarantees absolute safety.",
-                category,
-                currentH3Grid != null ? currentH3Grid.currentCellId : "Indexed Cell",
-                total, withData, noData,
-                guidance,
-                lastUpdatedDate
+        String message = String.format(
+                "Classification: %s\n\n"
+                + "Practical Safety Guidance:\n%s\n\n"
+                + "Data Baseline: %s (Last updated: %s)\n\n"
+                + "Demonstration Notice & Disclaimer:\n%s",
+                currentRisk.riskCategory,
+                currentRisk.safetyGuidance,
+                currentRisk.dataPeriod,
+                lastUpdatedDate,
+                currentRisk.disclaimer
         );
 
         new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Geographical Risk Analysis")
+                .setTitle("Area Safety Assessment")
                 .setMessage(message)
                 .setPositiveButton("Understood", null)
                 .show();
@@ -410,38 +349,24 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         this.mapLibreMap = map;
 
         map.setStyle(new Style.Builder().fromJson(OSM_STYLE_JSON), style -> {
-            // H3 Grid GeoJson Source & Layers
-            GeoJsonSource h3Source = new GeoJsonSource(H3_GRID_SOURCE_ID);
-            style.addSource(h3Source);
+            // Risk Zone circular overlay layers
+            GeoJsonSource riskSource = new GeoJsonSource(RISK_SOURCE_ID);
+            style.addSource(riskSource);
 
-            // Fill Layer with translucent data-driven color from feature property "color"
-            FillLayer h3FillLayer = new FillLayer(H3_GRID_FILL_LAYER_ID, H3_GRID_SOURCE_ID);
-            h3FillLayer.setProperties(
-                    PropertyFactory.fillColor(Expression.toColor(Expression.get("color"))),
-                    PropertyFactory.fillOpacity(0.35f)
+            FillLayer riskFillLayer = new FillLayer(RISK_FILL_LAYER_ID, RISK_SOURCE_ID);
+            riskFillLayer.setProperties(
+                    PropertyFactory.fillColor(Color.parseColor("#16A34A")),
+                    PropertyFactory.fillOpacity(0.22f)
             );
-            style.addLayer(h3FillLayer);
+            style.addLayer(riskFillLayer);
 
-            // Subtle border outline for H3 hexagons
-            LineLayer h3LineLayer = new LineLayer(H3_GRID_LINE_LAYER_ID, H3_GRID_SOURCE_ID);
-            h3LineLayer.setProperties(
-                    PropertyFactory.lineColor(Expression.toColor(Expression.get("color"))),
-                    PropertyFactory.lineWidth(1.8f),
-                    PropertyFactory.lineOpacity(0.85f)
+            LineLayer riskLineLayer = new LineLayer(RISK_LINE_LAYER_ID, RISK_SOURCE_ID);
+            riskLineLayer.setProperties(
+                    PropertyFactory.lineColor(Color.parseColor("#16A34A")),
+                    PropertyFactory.lineWidth(2.2f),
+                    PropertyFactory.lineOpacity(0.75f)
             );
-            style.addLayer(h3LineLayer);
-
-            // Selected Cell Highlight Line Layer
-            GeoJsonSource selectedSource = new GeoJsonSource(H3_SELECTED_SOURCE_ID);
-            style.addSource(selectedSource);
-
-            LineLayer selectedLineLayer = new LineLayer(H3_SELECTED_LINE_LAYER_ID, H3_SELECTED_SOURCE_ID);
-            selectedLineLayer.setProperties(
-                    PropertyFactory.lineColor(Color.WHITE),
-                    PropertyFactory.lineWidth(3.8f),
-                    PropertyFactory.lineOpacity(1.0f)
-            );
-            style.addLayer(selectedLineLayer);
+            style.addLayer(riskLineLayer);
 
             // Active Journey Route layer
             GeoJsonSource routeSource = new GeoJsonSource(ROUTE_SOURCE_ID);
@@ -456,24 +381,15 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             );
             style.addLayer(routeLayer);
 
-            // Tap-to-select map click listener
-            map.addOnMapClickListener(point -> {
-                handleMapClick(point);
-                return true;
-            });
-
             Location currentLoc = (lastLocation != null) ? lastLocation : journeyViewModel.getCurrentLocation().getValue();
             if (currentLoc != null) {
                 lastLocation = currentLoc;
                 updateUserMarker(currentLoc.getLatitude(), currentLoc.getLongitude());
                 centerCameraOn(currentLoc.getLatitude(), currentLoc.getLongitude(), 15.0);
                 isCameraInitialized = true;
+                updateRiskZoneOverlay();
             } else {
                 centerCameraOn(20.5937, 78.9629, 4.5);
-            }
-
-            if (currentH3Grid != null) {
-                renderH3GridOverlay(currentH3Grid);
             }
 
             Journey active = journeyViewModel.getActiveJourney().getValue();
@@ -483,142 +399,51 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         });
     }
 
-    private void renderH3GridOverlay(H3GridRiskDto gridDto) {
-        if (mapLibreMap == null || gridDto == null || gridDto.cells == null) return;
-        Style style = mapLibreMap.getStyle();
-        if (style == null) return;
-
-        GeoJsonSource source = style.getSourceAs(H3_GRID_SOURCE_ID);
-        if (source == null) return;
-
-        List<Feature> features = new ArrayList<>();
-        for (H3CellRiskDto cell : gridDto.cells) {
-            if (cell.polygonCoordinates == null || cell.polygonCoordinates.isEmpty()) continue;
-
-            List<Point> ring = new ArrayList<>();
-            for (List<Double> coord : cell.polygonCoordinates) {
-                if (coord.size() >= 2) {
-                    ring.add(Point.fromLngLat(coord.get(0), coord.get(1)));
-                }
-            }
-            if (ring.size() < 3) continue;
-
-            Polygon polygon = Polygon.fromLngLats(Collections.singletonList(ring));
-            Feature feature = Feature.fromGeometry(polygon);
-            feature.addStringProperty("cell_id", cell.cellId);
-            feature.addStringProperty("color", cell.colorIndicator != null ? cell.colorIndicator : "#16A34A");
-            feature.addStringProperty("risk_category", cell.riskCategory != null ? cell.riskCategory : "Low Risk");
-            feature.addNumberProperty("risk_class", cell.riskClass);
-            feature.addNumberProperty("incident_count", cell.incidentCount);
-            feature.addStringProperty("observation_period", cell.observationPeriod != null ? cell.observationPeriod : "Baseline");
-            feature.addBooleanProperty("is_current_location", cell.isCurrentLocation);
-            if (cell.primaryIncidentType != null) {
-                feature.addStringProperty("primary_incident_type", cell.primaryIncidentType);
-            }
-            features.add(feature);
-        }
-
-        source.setGeoJson(FeatureCollection.fromFeatures(features));
-    }
-
-    private void handleMapClick(LatLng point) {
-        if (currentH3Grid == null || currentH3Grid.cells == null) return;
-
-        // Try rendered features query first
-        if (mapLibreMap != null) {
-            android.graphics.PointF screenPoint = mapLibreMap.getProjection().toScreenLocation(point);
-            List<Feature> features = mapLibreMap.queryRenderedFeatures(screenPoint, H3_GRID_FILL_LAYER_ID);
-            if (!features.isEmpty()) {
-                String cellId = features.get(0).getStringProperty("cell_id");
-                if (cellId != null) {
-                    for (H3CellRiskDto cell : currentH3Grid.cells) {
-                        if (cellId.equals(cell.cellId)) {
-                            riskViewModel.selectCell(cell);
-                            return;
-                        }
-                    }
-                }
-            }
-        }
-
-        // Geometric distance fallback: find closest cell center
-        H3CellRiskDto closest = null;
-        double minDistance = Double.MAX_VALUE;
-        for (H3CellRiskDto cell : currentH3Grid.cells) {
-            double dLat = cell.centerLat - point.getLatitude();
-            double dLng = cell.centerLng - point.getLongitude();
-            double distSq = dLat * dLat + dLng * dLng;
-            if (distSq < minDistance) {
-                minDistance = distSq;
-                closest = cell;
-            }
-        }
-
-        // Within ~1.5km tolerance in degree space (~0.015 deg)
-        if (closest != null && minDistance < 0.0003) {
-            riskViewModel.selectCell(closest);
-        }
-    }
-
-    private void displaySelectedCellInfo(H3CellRiskDto cell) {
-        cardSelectedCell.setVisibility(View.VISIBLE);
-
-        String title = cell.isCurrentLocation ? "H3 Cell (Current Location)" : "H3 Hexagon Cell";
-        tvSelectedCellTitle.setText(title);
-        tvSelectedCellId.setText(String.format("Index: %s", cell.cellId));
-
-        tvSelectedCellRisk.setText(cell.riskCategory);
-        try {
-            int color = Color.parseColor(cell.colorIndicator);
-            tvSelectedCellRisk.setTextColor(color);
-            viewSelectedCellColor.setBackgroundColor(color);
-        } catch (Exception ignored) {
-            tvSelectedCellRisk.setTextColor(Color.parseColor("#16A34A"));
-        }
-
-        if (cell.incidentCount > 0) {
-            String crime = cell.primaryIncidentType != null ? cell.primaryIncidentType : "Incident";
-            tvSelectedCellIncidents.setText(String.format(Locale.getDefault(),
-                    "Incidents: %d recorded (%s)", cell.incidentCount, crime));
-        } else {
-            tvSelectedCellIncidents.setText("Incidents: 0 recorded in historical dataset");
-        }
-
-        tvSelectedCellPeriod.setText(String.format(Locale.getDefault(),
-                "Baseline: %s · Conf: %.0f%%", cell.observationPeriod, cell.confidenceScore * 100));
-
-        // Highlight selected cell on map
-        highlightSelectedCell(cell);
-    }
-
-    private void highlightSelectedCell(H3CellRiskDto cell) {
-        if (mapLibreMap == null || cell == null || cell.polygonCoordinates == null) return;
-        Style style = mapLibreMap.getStyle();
-        if (style == null) return;
-
-        GeoJsonSource source = style.getSourceAs(H3_SELECTED_SOURCE_ID);
-        if (source == null) return;
-
+    private Polygon createCirclePolygon(double centerLat, double centerLng, double radiusKm, int points) {
         List<Point> ring = new ArrayList<>();
-        for (List<Double> coord : cell.polygonCoordinates) {
-            if (coord.size() >= 2) {
-                ring.add(Point.fromLngLat(coord.get(0), coord.get(1)));
-            }
+        double earthRadiusKm = 6371.0;
+        double dByR = radiusKm / earthRadiusKm;
+        double latRad = Math.toRadians(centerLat);
+        double lngRad = Math.toRadians(centerLng);
+
+        for (int i = 0; i <= points; i++) {
+            double bearing = 2.0 * Math.PI * i / points;
+            double pLatRad = Math.asin(Math.sin(latRad) * Math.cos(dByR) +
+                    Math.cos(latRad) * Math.sin(dByR) * Math.cos(bearing));
+            double pLngRad = lngRad + Math.atan2(Math.sin(bearing) * Math.sin(dByR) * Math.cos(latRad),
+                    Math.cos(dByR) - Math.sin(latRad) * Math.sin(pLatRad));
+            ring.add(Point.fromLngLat(Math.toDegrees(pLngRad), Math.toDegrees(pLatRad)));
         }
-        if (ring.size() >= 3) {
-            Polygon polygon = Polygon.fromLngLats(Collections.singletonList(ring));
-            source.setGeoJson(FeatureCollection.fromFeature(Feature.fromGeometry(polygon)));
-        }
+        List<List<Point>> coordinates = new ArrayList<>();
+        coordinates.add(ring);
+        return Polygon.fromLngLats(coordinates);
     }
 
-    private void clearSelectedHighlight() {
+    private void updateRiskZoneOverlay() {
         if (mapLibreMap == null) return;
         Style style = mapLibreMap.getStyle();
         if (style == null) return;
 
-        GeoJsonSource source = style.getSourceAs(H3_SELECTED_SOURCE_ID);
-        if (source != null) {
-            source.setGeoJson(FeatureCollection.fromFeatures(new ArrayList<>()));
+        GeoJsonSource source = style.getSourceAs(RISK_SOURCE_ID);
+        if (source == null) return;
+
+        if (lastLocation != null) {
+            Polygon circle = createCirclePolygon(lastLocation.getLatitude(), lastLocation.getLongitude(), 1.0, 64);
+            source.setGeoJson(FeatureCollection.fromFeature(Feature.fromGeometry(circle)));
+
+            String colorStr = (currentRisk != null && currentRisk.colorIndicator != null && !currentRisk.colorIndicator.isEmpty())
+                    ? currentRisk.colorIndicator : "#16A34A";
+            try {
+                int color = Color.parseColor(colorStr);
+                FillLayer fillLayer = style.getLayerAs(RISK_FILL_LAYER_ID);
+                if (fillLayer != null) {
+                    fillLayer.setProperties(PropertyFactory.fillColor(color));
+                }
+                LineLayer lineLayer = style.getLayerAs(RISK_LINE_LAYER_ID);
+                if (lineLayer != null) {
+                    lineLayer.setProperties(PropertyFactory.lineColor(color));
+                }
+            } catch (Exception ignored) {}
         }
     }
 

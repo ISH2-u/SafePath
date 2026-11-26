@@ -8,6 +8,7 @@ from app.database.session import get_db
 from app.models.models import User, EmergencyContact, SosEvent
 from app.schemas.sos import SosTriggerRequest, SosEventOut, RecipientDeliveryStatus
 from app.security.deps import get_current_active_user
+from app.services.sms_service import sms_service
 
 router = APIRouter()
 
@@ -106,17 +107,27 @@ def trigger_manual_sos(
     db.commit()
     db.refresh(sos_event)
 
-    # ── 4. Build Recipient Delivery Confirmations ──────────────────────────────
+    # ── 4. Build Recipient Delivery Confirmations & Dispatch SMS ─────────────
     recipient_statuses = []
+    delivered_count = 0
     for c in verified_contacts:
+        dispatch_res = sms_service.send_sos_alert(c.phone, alert_message)
+        d_status = dispatch_res.get("status", "DELIVERED")
+        if d_status in ("DELIVERED", "MOCK_SENT", "SENT"):
+            delivered_count += 1
         recipient_statuses.append(RecipientDeliveryStatus(
             contact_id=c.id,
             contact_name=c.name,
             phone=c.phone,
-            channel="SMS",
-            status="DELIVERED",
+            channel=f"SMS ({dispatch_res.get('provider', 'SMS')})",
+            status=d_status,
             dispatched_at=now
         ))
+
+    # Update actual delivery counts and final event status
+    sos_event.delivered_count = delivered_count
+    sos_event.status = "DELIVERED" if delivered_count > 0 else ("NO_RECIPIENTS" if not verified_contacts else "FAILED")
+    db.commit()
 
     return SosEventOut(
         id=sos_event.id,

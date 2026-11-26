@@ -72,6 +72,15 @@
             android:exported="false"
             android:foregroundServiceType="microphone" />
 
+        <!-- ─── Broadcast Receivers ────────────────────────────── -->
+        <receiver
+            android:name=".receivers.BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

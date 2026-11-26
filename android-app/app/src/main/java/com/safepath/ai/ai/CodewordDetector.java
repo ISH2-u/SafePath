@@ -3,6 +3,8 @@ package com.safepath.ai.ai;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -15,9 +17,10 @@ import java.util.Locale;
  *
  * CRITICAL REQUIREMENTS ENFORCED:
  * 1. 100% on-device local recognition (PREFER_OFFLINE).
- * 2. Zero raw microphone audio is transmitted over any network.
+ * 2. Zero raw microphone audio is transmitted over any network or stored in files.
  * 3. Token-based phonetic and Levenshtein similarity scoring against normalized codeword.
- * 4. Triggers immediately upon crossing the confidence threshold without secondary confirmations.
+ * 4. Triggers immediately upon crossing the confidence threshold.
+ * 5. Stabilized background loop with main-thread handler to prevent audio server lockup.
  */
 public class CodewordDetector {
 
@@ -31,6 +34,7 @@ public class CodewordDetector {
     private final Context context;
     private final DetectionListener listener;
     private final VoicePreferenceManager prefManager;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private SpeechRecognizer speechRecognizer;
     private boolean isListening = false;
 
@@ -41,7 +45,7 @@ public class CodewordDetector {
     }
 
     public synchronized void startListening() {
-        if (isListening) return;
+        if (isListening && speechRecognizer != null) return;
 
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
             if (listener != null) {
@@ -50,58 +54,65 @@ public class CodewordDetector {
             return;
         }
 
-        try {
-            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context);
-            speechRecognizer.setRecognitionListener(new RecognitionListener() {
-                @Override
-                public void onReadyForSpeech(Bundle params) {
-                    isListening = true;
-                    if (listener != null) listener.onListeningStateChanged(true);
+        mainHandler.post(() -> {
+            try {
+                if (speechRecognizer != null) {
+                    speechRecognizer.destroy();
+                    speechRecognizer = null;
                 }
 
-                @Override public void onBeginningOfSpeech() {}
-                @Override public void onRmsChanged(float rmsdB) {}
-                @Override public void onBufferReceived(byte[] buffer) {}
-                @Override public void onEndOfSpeech() {}
-
-                @Override
-                public void onError(int error) {
-                    // Speech timeout / no match are normal in ambient monitoring; restart loop
-                    if (isListening) {
-                        restartListeningSafely();
+                speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context);
+                speechRecognizer.setRecognitionListener(new RecognitionListener() {
+                    @Override
+                    public void onReadyForSpeech(Bundle params) {
+                        isListening = true;
+                        if (listener != null) listener.onListeningStateChanged(true);
                     }
-                }
 
-                @Override
-                public void onResults(Bundle results) {
-                    processHypotheses(results);
-                    if (isListening) {
-                        restartListeningSafely();
+                    @Override public void onBeginningOfSpeech() {}
+                    @Override public void onRmsChanged(float rmsdB) {}
+                    @Override public void onBufferReceived(byte[] buffer) {}
+                    @Override public void onEndOfSpeech() {}
+
+                    @Override
+                    public void onError(int error) {
+                        // Ambient pauses and timeouts are expected; loop continues
+                        if (isListening) {
+                            restartListeningSafely();
+                        }
                     }
+
+                    @Override
+                    public void onResults(Bundle results) {
+                        processHypotheses(results);
+                        if (isListening) {
+                            restartListeningSafely();
+                        }
+                    }
+
+                    @Override
+                    public void onPartialResults(Bundle partialResults) {
+                        processHypotheses(partialResults);
+                    }
+
+                    @Override public void onEvent(int eventType, Bundle params) {}
+                });
+
+                Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toLanguageTag());
+                intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+                intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+
+                speechRecognizer.startListening(intent);
+                isListening = true;
+            } catch (Exception e) {
+                isListening = false;
+                if (listener != null) {
+                    listener.onError(-2, "Failed to initialize microphone listener: " + e.getMessage());
                 }
-
-                @Override
-                public void onPartialResults(Bundle partialResults) {
-                    processHypotheses(partialResults);
-                }
-
-                @Override public void onEvent(int eventType, Bundle params) {}
-            });
-
-            Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toLanguageTag());
-            intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
-            intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true); // STRICT: on-device processing
-
-            speechRecognizer.startListening(intent);
-            isListening = true;
-        } catch (Exception e) {
-            isListening = false;
-            if (listener != null) {
-                listener.onError(-2, "Failed to initialize microphone listener: " + e.getMessage());
             }
-        }
+        });
     }
 
     private void processHypotheses(Bundle bundle) {
@@ -121,8 +132,6 @@ public class CodewordDetector {
                 listener.onAcousticHypothesis(candidate, confidence);
             }
 
-            // CRITICAL TRIGGER CONDITION:
-            // Complete emergency phrase recognized >= threshold
             if (confidence >= threshold) {
                 if (listener != null) {
                     listener.onCodewordDetected(candidate, confidence);
@@ -134,27 +143,36 @@ public class CodewordDetector {
 
     private synchronized void restartListeningSafely() {
         if (!isListening) return;
-        try {
-            if (speechRecognizer != null) {
-                speechRecognizer.cancel();
-            }
-            startListening();
-        } catch (Exception ignored) {}
+        mainHandler.removeCallbacksAndMessages(null);
+        mainHandler.postDelayed(() -> {
+            if (!isListening) return;
+            try {
+                if (speechRecognizer != null) {
+                    speechRecognizer.cancel();
+                    speechRecognizer.destroy();
+                    speechRecognizer = null;
+                }
+                startListening();
+            } catch (Exception ignored) {}
+        }, 350L);
     }
 
     public synchronized void stopListening() {
         isListening = false;
-        if (speechRecognizer != null) {
-            try {
-                speechRecognizer.stopListening();
-                speechRecognizer.cancel();
-                speechRecognizer.destroy();
-            } catch (Exception ignored) {}
-            speechRecognizer = null;
-        }
-        if (listener != null) {
-            listener.onListeningStateChanged(false);
-        }
+        mainHandler.removeCallbacksAndMessages(null);
+        mainHandler.post(() -> {
+            if (speechRecognizer != null) {
+                try {
+                    speechRecognizer.stopListening();
+                    speechRecognizer.cancel();
+                    speechRecognizer.destroy();
+                } catch (Exception ignored) {}
+                speechRecognizer = null;
+            }
+            if (listener != null) {
+                listener.onListeningStateChanged(false);
+            }
+        });
     }
 
     public synchronized void destroy() {
@@ -217,4 +235,3 @@ public class CodewordDetector {
         return costs[s2.length()];
     }
 }
-

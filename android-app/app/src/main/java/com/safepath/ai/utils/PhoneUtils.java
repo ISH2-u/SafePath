@@ -9,19 +9,21 @@ import java.util.regex.Pattern;
  */
 public final class PhoneUtils {
 
-    // E.164 standard: optional '+', followed by 7 to 15 digits (first digit typically non-zero)
+    // E.164 standard: optional '+', followed by 7 to 15 digits
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\+?[0-9]{7,15}$");
+    private static final Pattern INDIAN_MOBILE_10 = Pattern.compile("^[6-9][0-9]{9}$");
 
     private PhoneUtils() {
         // Utility class
     }
 
     /**
-     * Normalizes a phone number by stripping whitespace, hyphens, brackets, and dots,
-     * while preserving a leading '+' for international numbers.
+     * Normalizes a phone number by stripping whitespace, hyphens, brackets, and dots.
+     * Automatically handles 10-digit Indian mobile numbers (starting with 6-9) by formatting with '+91'.
+     * Preserves leading '+' for existing international numbers.
      *
-     * @param raw Raw input string (e.g. "+1 (555) 123-4567" or "98765 43210")
-     * @return Normalized phone string (e.g. "+15551234567") or empty string if input is null/empty.
+     * @param raw Raw input string (e.g. "+91 98765 43210", "9876543210", or "+1 (555) 123-4567")
+     * @return Normalized phone string (e.g. "+919876543210" or "+15551234567") or empty string.
      */
     public static String normalize(@Nullable String raw) {
         if (raw == null) {
@@ -40,7 +42,26 @@ public final class PhoneUtils {
             return "";
         }
 
-        return hasPlus ? "+" + digitsOnly : digitsOnly;
+        if (hasPlus) {
+            return "+" + digitsOnly;
+        }
+
+        // If 11 digits starting with 0 (e.g. 09876543210), strip leading 0
+        if (digitsOnly.length() == 11 && digitsOnly.startsWith("0")) {
+            digitsOnly = digitsOnly.substring(1);
+        }
+
+        // If standard 10-digit Indian mobile (starts with 6, 7, 8, 9), prefix with +91
+        if (digitsOnly.length() == 10 && INDIAN_MOBILE_10.matcher(digitsOnly).matches()) {
+            return "+91" + digitsOnly;
+        }
+
+        // If 12 digits starting with 91, format with '+'
+        if (digitsOnly.length() == 12 && digitsOnly.startsWith("91")) {
+            return "+" + digitsOnly;
+        }
+
+        return digitsOnly;
     }
 
     /**

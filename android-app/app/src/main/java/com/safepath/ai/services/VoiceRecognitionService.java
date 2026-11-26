@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.location.Location;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -27,11 +28,12 @@ import com.safepath.ai.utils.VoicePreferenceManager;
  * VoiceRecognitionService — Compliant Android Foreground Service for on-device voice codeword listening.
  *
  * CRITICAL REQUIREMENTS ENFORCED:
- * 1. Uses FOREGROUND_SERVICE_MICROPHONE with clear, persistent notification.
+ * 1. Uses FOREGROUND_SERVICE_MICROPHONE with clear, persistent notification and quick-stop action.
  * 2. 100% on-device keyword recognition (EXTRA_PREFER_OFFLINE).
- * 3. Zero raw microphone audio streamed to any external servers or logs.
- * 4. Immediate SOS dispatch upon codeword detection WITHOUT confirmation dialog or extra button press.
- * 5. Uses the same secure SosRepository and verified-contacts pipeline as the manual SOS button.
+ * 3. Zero raw microphone audio streamed to any external servers or stored in audio files.
+ * 4. Immediate SOS dispatch upon codeword detection with duplicate-trigger protection.
+ * 5. Uses PARTIAL_WAKE_LOCK to preserve listening during screen-off / screen-locked conditions.
+ * 6. Uses the same secure SosRepository and verified-contacts pipeline as the manual SOS button.
  */
 public class VoiceRecognitionService extends Service implements CodewordDetector.DetectionListener {
 
@@ -43,10 +45,15 @@ public class VoiceRecognitionService extends Service implements CodewordDetector
     public static final String CHANNEL_ID = "safepath_voice_codeword_channel";
     public static final int NOTIFICATION_ID = 2002;
 
+    // Cooldown window between consecutive voice-triggered SOS dispatches (45 seconds)
+    private static final long SOS_TRIGGER_COOLDOWN_MS = 45_000L;
+    private static long lastSosTriggerTimeMs = 0L;
+
     private CodewordDetector detector;
     private SosRepository sosRepository;
     private VoicePreferenceManager prefManager;
     private FusedLocationProviderClient fusedLocationClient;
+    private PowerManager.WakeLock wakeLock;
 
     public static void start(Context context) {
         Intent intent = new Intent(context, VoiceRecognitionService.class);
@@ -73,6 +80,28 @@ public class VoiceRecognitionService extends Service implements CodewordDetector
         detector = new CodewordDetector(this, this);
 
         createNotificationChannel();
+        acquireWakeLock();
+    }
+
+    private void acquireWakeLock() {
+        try {
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (pm != null && (wakeLock == null || !wakeLock.isHeld())) {
+                wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SafePath:VoiceMonitoringWakeLock");
+                wakeLock.acquire(10 * 60 * 1000L); // 10 minutes rolling lock, re-acquired on loop
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Could not acquire WakeLock: " + e.getMessage());
+        }
+    }
+
+    private void releaseWakeLock() {
+        try {
+            if (wakeLock != null && wakeLock.isHeld()) {
+                wakeLock.release();
+            }
+        } catch (Exception ignored) {}
+        wakeLock = null;
     }
 
     @Override
@@ -82,8 +111,12 @@ public class VoiceRecognitionService extends Service implements CodewordDetector
             return START_NOT_STICKY;
         }
 
-        startForeground(NOTIFICATION_ID, buildForegroundNotification("Active: Listening for your personal codeword"));
-        detector.startListening();
+        startForeground(NOTIFICATION_ID, buildForegroundNotification("Active: Monitoring for your emergency codeword"));
+        acquireWakeLock();
+
+        if (detector != null) {
+            detector.startListening();
+        }
         prefManager.setMonitoringActive(true);
 
         return START_STICKY;
@@ -91,16 +124,20 @@ public class VoiceRecognitionService extends Service implements CodewordDetector
 
     @Override
     public void onCodewordDetected(String matchedText, float confidence) {
-        // CRITICAL: Trigger emergency SOS immediately!
-        // No confirmation screen, no prompt to repeat phrase, no extra button press.
+        long now = System.currentTimeMillis();
+        if (now - lastSosTriggerTimeMs < SOS_TRIGGER_COOLDOWN_MS) {
+            Log.w(TAG, "Emergency codeword recognized, but within 45s cooldown window. Duplicate SOS suppressed.");
+            return;
+        }
+        lastSosTriggerTimeMs = now;
+
         Log.w(TAG, "EMERGENCY: Codeword recognized with confidence=" + confidence + "! Immediately dispatching SOS.");
 
-        // Update notification immediately
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm != null) {
             Notification alertNotification = new NotificationCompat.Builder(this, CHANNEL_ID)
                     .setContentTitle("EMERGENCY ALERT TRIGGERED")
-                    .setContentText("Emergency phrase recognized! Dispatching alerts to verified contacts.")
+                    .setContentText("Voice codeword detected. Emergency alerts dispatched to verified contacts.")
                     .setSmallIcon(R.drawable.ic_sos)
                     .setPriority(NotificationCompat.PRIORITY_MAX)
                     .setAutoCancel(true)
@@ -139,7 +176,6 @@ public class VoiceRecognitionService extends Service implements CodewordDetector
                 if (lastLoc != null) {
                     dispatchSosWithLocation(lastLoc, true);
                 } else {
-                    // Even without coordinates, MUST dispatch SOS!
                     dispatchSosWithoutLocation();
                 }
             }).addOnFailureListener(e -> dispatchSosWithoutLocation());
@@ -157,7 +193,7 @@ public class VoiceRecognitionService extends Service implements CodewordDetector
                 isLastKnown,
                 "VOICE",
                 100,
-                "Voice Codeword Emergency Trigger",
+                "Voice Codeword Emergency Trigger (Hands-Free)",
                 new SosRepository.SosCallback<SosResponse>() {
                     @Override
                     public void onSuccess(SosResponse result) {
@@ -166,7 +202,7 @@ public class VoiceRecognitionService extends Service implements CodewordDetector
 
                     @Override
                     public void onError(String errorMessage, com.safepath.ai.models.SosEvent localEvent) {
-                        Log.w(TAG, "Voice SOS queued locally. Offline retry active. " + errorMessage);
+                        Log.w(TAG, "Voice SOS queued locally. Offline retry active: " + errorMessage);
                     }
                 }
         );
@@ -198,12 +234,12 @@ public class VoiceRecognitionService extends Service implements CodewordDetector
 
     @Override
     public void onAcousticHypothesis(String partialHypothesis, float confidence) {
-        // Hypotheses processed locally; never log sensitive text
+        // Hypotheses processed on-device; never uploaded or stored
     }
 
     @Override
     public void onError(int errorCode, String errorMessage) {
-        Log.d(TAG, "Detector error code: " + errorCode + " - " + errorMessage);
+        Log.d(TAG, "Detector status: code=" + errorCode + " - " + errorMessage);
     }
 
     @Override
@@ -216,6 +252,7 @@ public class VoiceRecognitionService extends Service implements CodewordDetector
             detector.stopListening();
         }
         prefManager.setMonitoringActive(false);
+        releaseWakeLock();
         stopForeground(true);
         stopSelf();
     }
@@ -227,6 +264,7 @@ public class VoiceRecognitionService extends Service implements CodewordDetector
             detector.destroy();
         }
         prefManager.setMonitoringActive(false);
+        releaseWakeLock();
         super.onDestroy();
     }
 
@@ -240,7 +278,7 @@ public class VoiceRecognitionService extends Service implements CodewordDetector
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
-                    "Voice Codeword Listener",
+                    "Voice Codeword Monitoring",
                     NotificationManager.IMPORTANCE_LOW
             );
             channel.setDescription("Provides continuous on-device emergency codeword monitoring for personal safety.");
@@ -258,13 +296,21 @@ public class VoiceRecognitionService extends Service implements CodewordDetector
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
         );
 
+        Intent stopIntent = new Intent(this, VoiceRecognitionService.class);
+        stopIntent.setAction(ACTION_STOP);
+        PendingIntent stopPendingIntent = PendingIntent.getService(
+                this, 1, stopIntent,
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
+        );
+
         return new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("SafePath Voice Codeword")
                 .setContentText(statusText)
                 .setSmallIcon(R.drawable.ic_mic)
                 .setContentIntent(pendingIntent)
+                .addAction(R.drawable.ic_stop, "Disable Monitoring", stopPendingIntent)
                 .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
                 .build();
     }
 }
-

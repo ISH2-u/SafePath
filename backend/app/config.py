@@ -40,6 +40,13 @@ class Settings(BaseSettings):
     # ML Model
     ML_MODEL_PATH: Optional[str] = os.path.join(BASE_DIR, "models", "area_risk_model.joblib")
 
+    # SMS Provider Configuration
+    SMS_PROVIDER: str = "DEV_MOCK"  # DEV_MOCK, TWILIO, or FAST2SMS
+    TWILIO_ACCOUNT_SID: Optional[str] = None
+    TWILIO_AUTH_TOKEN: Optional[str] = None
+    TWILIO_FROM_NUMBER: Optional[str] = None
+    FAST2SMS_API_KEY: Optional[str] = None
+
     model_config = SettingsConfigDict(
         env_file=ENV_PATH if os.path.exists(ENV_PATH) else ".env",
         extra="ignore",

@@ -19,4 +19,20 @@ INC017,2023-10-02 18:00:00,2023-10-02 22:00:00,Snatching,379,Punjab,Ludhiana,Civ
 INC018,2023-10-15 14:00:00,2023-10-15 16:30:00,Cyber Fraud,420,Karnataka,Bengaluru Urban,Whitefield,12.9698,77.7499,Online banking phishing victim
 INC019,2023-11-01 23:45:00,2023-11-02 09:00:00,Burglary,457,Delhi,East Delhi,Preet Vihar,28.6367,77.2917,Commercial shop broken into overnight
 INC020,2023-11-20 19:15:00,2023-11-20 20:30:00,Dacoity,395,Bihar,Patna,Kankarbagh,25.5941,85.1376,Armed group robbery near railway siding
-
+INC021,2023-11-22 18:10:00,2023-11-22 19:00:00,Vehicle Theft,379,Karnataka,Bengaluru Urban,Whitefield,12.9712,77.7510,Motorcycle stolen from tech park visitor parking
+INC022,2023-11-24 13:45:00,2023-11-24 15:00:00,Pickpocketing,379,Karnataka,Bengaluru Urban,Electronic City,12.8452,77.6602,Wallet pickpocketed near toll interchange
+INC023,2023-11-25 20:30:00,2023-11-25 21:15:00,Theft,379,Karnataka,Bengaluru Urban,Electronic City,12.8460,77.6590,Two-wheeler accessory stolen from street
+INC024,2023-11-27 17:30:00,2023-11-27 18:15:00,Snatching,379,Karnataka,Bengaluru Urban,Commercial Street,12.9822,77.6083,Purse snatched in crowded shopping street
+INC025,2023-11-28 12:15:00,2023-11-28 13:00:00,Pickpocketing,379,Karnataka,Bengaluru Urban,Commercial Street,12.9818,77.6090,Mobile stolen from shopper bag
+INC026,2023-11-29 22:45:00,2023-11-30 08:30:00,Stalking,354D,Karnataka,Bengaluru Urban,Indiranagar,12.9790,77.6415,Repeated persistent following reported on 100ft road
+INC027,2023-12-01 21:15:00,2023-12-01 22:00:00,Snatching,379,Karnataka,Bengaluru Urban,Indiranagar,12.9775,77.6398,Gold chain snatched by two suspects on motorcycle
+INC028,2023-12-02 23:30:00,2023-12-03 09:00:00,Harassment,354A,Karnataka,Bengaluru Urban,Koramangala,12.9348,77.6250,Hostile verbal harassment reported near pub cluster
+INC029,2023-12-03 20:00:00,2023-12-03 20:45:00,Snatching,379,Karnataka,Bengaluru Urban,Koramangala,12.9360,77.6238,Mobile phone snatched outside cafe
+INC030,2023-12-05 21:30:00,2023-12-05 22:30:00,Eve Teasing,509,Karnataka,Bengaluru Urban,Majestic,12.9767,77.5713,Verbal harassment outside bus terminus entrance
+INC031,2023-12-06 23:45:00,2023-12-07 08:15:00,Burglary,457,Karnataka,Bengaluru Urban,Majestic,12.9772,77.5708,Commercial baggage counter broken into overnight
+INC032,2023-12-07 19:15:00,2023-12-07 20:00:00,Snatching,379,Karnataka,Bengaluru Urban,Majestic,12.9760,77.5720,Luggage bag snatched while boarding intercity bus
+INC033,2023-12-09 23:15:00,2023-12-10 02:00:00,Robbery,392,Karnataka,Bengaluru Urban,Peenya,13.0285,77.5185,Armed knife robbery at isolated industrial connector
+INC034,2023-12-10 01:30:00,2023-12-10 06:00:00,Physical Assault,324,Karnataka,Bengaluru Urban,Peenya,13.0290,77.5192,Physical assault and battery with weapon during night shift
+INC035,2023-12-12 22:45:00,2023-12-13 01:15:00,Dacoity,395,Karnataka,Bengaluru Urban,Kalasipalyam,12.9610,77.5780,Gang robbery at deserted loading dock
+INC036,2023-12-13 23:30:00,2023-12-14 07:00:00,Physical Assault,323,Karnataka,Bengaluru Urban,Kalasipalyam,12.9615,77.5775,Violent physical fight with blunt weapon outside market
+INC037,2023-12-15 14:00:00,2023-12-15 15:30:00,General Theft,379,Karnataka,Bengaluru Urban,HSR Layout,12.9121,77.6446,Bicycle stolen from apartment basement

@@ -11,6 +11,7 @@ from app.schemas.contact import (
     AuthorizedRecipientsResponse, AuthorizedRecipient
 )
 from app.security.deps import get_current_active_user
+from app.services.sms_service import sms_service, normalize_phone_number
 
 router = APIRouter()
 
@@ -37,9 +38,10 @@ def add_contact(
 ):
     """Adds a new emergency contact. Contact starts UNVERIFIED until phone verification completes."""
     # Check duplicate phone for this user
+    normalized_phone = normalize_phone_number(contact_in.phone)
     existing = db.query(EmergencyContact).filter(
         EmergencyContact.user_id == current_user.id,
-        EmergencyContact.phone == contact_in.phone.strip()
+        EmergencyContact.phone == normalized_phone
     ).first()
     if existing:
         raise HTTPException(
@@ -52,7 +54,7 @@ def add_contact(
     new_contact = EmergencyContact(
         user_id=current_user.id,
         name=contact_in.name.strip(),
-        phone=contact_in.phone.strip(),
+        phone=normalized_phone,
         email=contact_in.email.lower() if contact_in.email else None,
         relationship_type=contact_in.relationship_type,
         is_verified=False,
@@ -99,11 +101,13 @@ def update_contact(
         contact.receive_sos_alerts = contact_in.receive_sos_alerts
 
     # If phone number changed, reset verification
-    if contact_in.phone is not None and contact_in.phone.strip() != contact.phone:
-        contact.phone = contact_in.phone.strip()
-        contact.is_verified = False
-        contact.verification_code = _generate_verification_code()
-        contact.verification_sent_at = datetime.utcnow()
+    if contact_in.phone is not None:
+        normalized_phone = normalize_phone_number(contact_in.phone)
+        if normalized_phone != contact.phone:
+            contact.phone = normalized_phone
+            contact.is_verified = False
+            contact.verification_code = _generate_verification_code()
+            contact.verification_sent_at = datetime.utcnow()
 
     contact.updated_at = datetime.utcnow()
     db.commit()
@@ -157,11 +161,13 @@ def send_verification(
     contact.verification_sent_at = datetime.utcnow()
     db.commit()
 
+    dispatch_res = sms_service.send_verification_otp(contact.phone, code)
+
     return VerificationDispatchResponse(
         contact_id=contact.id,
         phone=contact.phone,
-        status="sent",
-        message=f"6-digit verification code dispatched to {contact.phone}.",
+        status=dispatch_res.get("status", "sent"),
+        message=f"6-digit verification code dispatched via {dispatch_res.get('provider', 'SMS')}.",
         dev_verification_code=code  # surfaced for development/testing
     )
 
