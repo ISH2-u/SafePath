@@ -3,12 +3,15 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import List, Optional
 import uuid
+import logging
 
 from app.database.session import get_db
 from app.models.models import User, EmergencyContact, SosEvent
 from app.schemas.sos import SosTriggerRequest, SosEventOut, RecipientDeliveryStatus
 from app.security.deps import get_current_active_user
-from app.services.sms_service import sms_service
+from app.services.sms_service import sms_service, mask_phone_number
+
+logger = logging.getLogger("safepath.sos")
 
 router = APIRouter()
 
@@ -30,12 +33,20 @@ def trigger_manual_sos(
     """
     # ── 1. Idempotency Check ──────────────────────────────────────────────────
     if req.idempotency_key:
+        logger.info(
+            f"[AUDIT] SOS_DISPATCH_REQUEST_RECEIVED | ReqId: {req.idempotency_key} | "
+            f"TriggerType: {req.trigger_type} | Lat: {req.latitude} | Lng: {req.longitude}"
+        )
         existing = db.query(SosEvent).filter(
             SosEvent.user_id == current_user.id,
             SosEvent.idempotency_key == req.idempotency_key
         ).first()
 
         if existing:
+            logger.info(
+                f"[AUDIT] SOS_DUPLICATE_IDEMPOTENT_REPLAY | EventId: {existing.id} | "
+                f"ReqId: {req.idempotency_key} | Replaying without re-dispatching"
+            )
             # Reconstruct response from existing event without re-sending
             return SosEventOut(
                 id=existing.id,
@@ -55,6 +66,11 @@ def trigger_manual_sos(
                 is_idempotent_replay=True,
                 disclaimer="Idempotent replay: Alert was already recorded and dispatched."
             )
+    else:
+        logger.info(
+            f"[AUDIT] SOS_DISPATCH_REQUEST_RECEIVED | TriggerType: {req.trigger_type} | "
+            f"Lat: {req.latitude} | Lng: {req.longitude}"
+        )
 
     # ── 2. Query Verified Emergency Contacts ONLY ─────────────────────────────
     # STRICT FILTER: Only explicitly verified contacts with receive_sos_alerts=True
@@ -63,6 +79,11 @@ def trigger_manual_sos(
         EmergencyContact.is_verified == True,
         EmergencyContact.receive_sos_alerts == True
     ).all()
+
+    logger.info(
+        f"[AUDIT] SOS_RECIPIENTS_RESOLVED | User: {current_user.id} | "
+        f"VerifiedRecipientCount: {len(verified_contacts)}"
+    )
 
     now = datetime.utcnow()
     timestamp_str = now.strftime("%Y-%m-%d %H:%M:%S UTC")
@@ -107,19 +128,41 @@ def trigger_manual_sos(
     db.commit()
     db.refresh(sos_event)
 
+    logger.info(
+        f"[AUDIT] SOS_EVENT_CREATED | EventId: {sos_event.id} | "
+        f"TriggerType: {sos_event.trigger_type} | Status: {sos_event.status}"
+    )
+
     # ── 4. Build Recipient Delivery Confirmations & Dispatch SMS ─────────────
     recipient_statuses = []
     delivered_count = 0
     for c in verified_contacts:
+        masked = mask_phone_number(c.phone)
+        logger.info(
+            f"[AUDIT] SOS_PROVIDER_REQUEST_SENT | EventId: {sos_event.id} | "
+            f"ContactId: {c.id} | Recipient: {masked} | Channel: SMS"
+        )
         dispatch_res = sms_service.send_sos_alert(c.phone, alert_message)
         d_status = dispatch_res.get("status", "DELIVERED")
+        d_provider = dispatch_res.get("provider", "SMS")
+
         if d_status in ("DELIVERED", "MOCK_SENT", "SENT"):
             delivered_count += 1
+            logger.info(
+                f"[AUDIT] SOS_PROVIDER_ACCEPTED | EventId: {sos_event.id} | "
+                f"Recipient: {masked} | Provider: {d_provider} | Status: {d_status}"
+            )
+        else:
+            logger.warning(
+                f"[AUDIT] SOS_PROVIDER_FAILED | EventId: {sos_event.id} | "
+                f"Recipient: {masked} | Provider: {d_provider} | Error: {dispatch_res.get('error')}"
+            )
+
         recipient_statuses.append(RecipientDeliveryStatus(
             contact_id=c.id,
             contact_name=c.name,
             phone=c.phone,
-            channel=f"SMS ({dispatch_res.get('provider', 'SMS')})",
+            channel=f"SMS ({d_provider})",
             status=d_status,
             dispatched_at=now
         ))
@@ -128,6 +171,11 @@ def trigger_manual_sos(
     sos_event.delivered_count = delivered_count
     sos_event.status = "DELIVERED" if delivered_count > 0 else ("NO_RECIPIENTS" if not verified_contacts else "FAILED")
     db.commit()
+
+    logger.info(
+        f"[AUDIT] SOS_DISPATCH_COMPLETED | EventId: {sos_event.id} | "
+        f"DeliveredCount: {delivered_count}/{len(verified_contacts)} | Status: {sos_event.status}"
+    )
 
     return SosEventOut(
         id=sos_event.id,

@@ -61,7 +61,11 @@ public class VoicePreferenceManager {
     }
 
     public String getCodeword() {
-        return securePrefs.getString(KEY_CODEWORD_ENCRYPTED, "");
+        String cw = securePrefs.getString(KEY_CODEWORD_ENCRYPTED, "");
+        if (cw == null || cw.trim().isEmpty()) {
+            return "blue moon";
+        }
+        return cw;
     }
 
     public String getCodewordPhrase() {

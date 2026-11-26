@@ -81,6 +81,16 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".receivers.SosActionReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.safepath.ai.action.CANCEL_SOS" />
+                <action android:name="com.safepath.ai.action.STOP_VOICE_SERVICE" />
+                <action android:name="com.safepath.ai.action.TRIGGER_VOICE_SOS" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

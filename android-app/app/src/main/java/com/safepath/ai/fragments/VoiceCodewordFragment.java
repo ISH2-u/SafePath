@@ -3,6 +3,7 @@ package com.safepath.ai.fragments;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
@@ -31,6 +32,7 @@ import com.safepath.ai.R;
 import com.safepath.ai.services.VoiceRecognitionService;
 import com.safepath.ai.utils.VoicePreferenceManager;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -56,6 +58,25 @@ public class VoiceCodewordFragment extends Fragment {
 
     private SpeechRecognizer testRecognizer;
     private boolean isTesting = false;
+
+    private final ActivityResultLauncher<String[]> permissionsLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
+                boolean audioGranted = Boolean.TRUE.equals(result.get(Manifest.permission.RECORD_AUDIO));
+                if (audioGranted) {
+                    if (switchVoiceMonitoring != null && switchVoiceMonitoring.isChecked()) {
+                        startVoiceService();
+                    } else if (isTesting) {
+                        beginAcousticTest();
+                    }
+                } else {
+                    if (switchVoiceMonitoring != null) {
+                        switchVoiceMonitoring.setChecked(false);
+                    }
+                    Toast.makeText(requireContext(),
+                            "Microphone permission is required to detect your emergency codeword.",
+                            Toast.LENGTH_LONG).show();
+                }
+            });
 
     private final ActivityResultLauncher<String> recordAudioLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
@@ -133,9 +154,19 @@ public class VoiceCodewordFragment extends Fragment {
         if (switchVoiceMonitoring != null) {
             switchVoiceMonitoring.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 if (isChecked) {
+                    List<String> needed = new ArrayList<>();
                     if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO)
                             != PackageManager.PERMISSION_GRANTED) {
-                        recordAudioLauncher.launch(Manifest.permission.RECORD_AUDIO);
+                        needed.add(Manifest.permission.RECORD_AUDIO);
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                            ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS)
+                                    != PackageManager.PERMISSION_GRANTED) {
+                        needed.add(Manifest.permission.POST_NOTIFICATIONS);
+                    }
+
+                    if (!needed.isEmpty()) {
+                        permissionsLauncher.launch(needed.toArray(new String[0]));
                     } else {
                         startVoiceService();
                     }

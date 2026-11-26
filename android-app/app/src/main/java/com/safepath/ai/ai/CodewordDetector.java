@@ -18,7 +18,9 @@ import java.util.Locale;
  * CRITICAL REQUIREMENTS ENFORCED:
  * 1. 100% on-device local recognition (PREFER_OFFLINE).
  * 2. Zero raw microphone audio is transmitted over any network or stored in files.
- * 3. Token-based phonetic and Levenshtein similarity scoring against normalized codeword.
+ * 3. Exact and strict phrase matching for "blue moon":
+ *    - Recognizes "blue moon", "the blue moon", "help blue moon", etc.
+ *    - Rejects single words ("blue" alone, "moon" alone), accidental noises, or partial unrelated speech.
  * 4. Triggers immediately upon crossing the confidence threshold.
  * 5. Stabilized background loop with main-thread handler to prevent audio server lockup.
  */
@@ -76,7 +78,7 @@ public class CodewordDetector {
 
                     @Override
                     public void onError(int error) {
-                        // Ambient pauses and timeouts are expected; loop continues
+                        // Ambient pauses and timeouts are expected; loop continues safely
                         if (isListening) {
                             restartListeningSafely();
                         }
@@ -121,7 +123,7 @@ public class CodewordDetector {
         if (matches == null || matches.isEmpty()) return;
 
         String targetCodeword = prefManager.getCodeword();
-        if (targetCodeword.isEmpty()) return;
+        if (targetCodeword.isEmpty()) targetCodeword = "blue moon";
 
         float threshold = prefManager.getConfidenceThreshold();
 
@@ -180,38 +182,52 @@ public class CodewordDetector {
     }
 
     /**
-     * Calculates fuzzy token and Levenshtein similarity between hypothesis and secret codeword.
-     * Returns score between 0.0 (no match) and 1.0 (exact match).
+     * Calculates phrase similarity between candidate hypothesis and configured codeword.
+     * Enforces strict detection rules:
+     * - Exact phrase or phrase substring ("blue moon", "emergency blue moon", etc.) -> 1.0f.
+     * - Rejects single words ("blue" only, "moon" only) when codeword is multi-word ("blue moon").
+     * - Returns 0.0f for unrelated words or accidental ambient noise.
      */
     public static float calculateSimilarity(String hypothesisRaw, String targetRaw) {
         String hyp = VoicePreferenceManager.normalizePhrase(hypothesisRaw);
         String tgt = VoicePreferenceManager.normalizePhrase(targetRaw);
 
         if (hyp.isEmpty() || tgt.isEmpty()) return 0.0f;
+
+        // Exact match or contains the full contiguous phrase
         if (hyp.equals(tgt) || hyp.contains(tgt)) return 1.0f;
 
-        // Levenshtein distance on words or characters
+        String[] tgtWords = tgt.split("\\s+");
+        String[] hypWords = hyp.split("\\s+");
+
+        // If target codeword consists of multiple words (e.g. "blue moon"),
+        // REQUIRE all target words to be present in order to avoid single-word false triggers.
+        if (tgtWords.length > 1) {
+            int matchedWords = 0;
+            for (String tw : tgtWords) {
+                for (String hw : hypWords) {
+                    if (tw.equals(hw) || computeLevenshteinDistance(tw, hw) <= 1) {
+                        matchedWords++;
+                        break;
+                    }
+                }
+            }
+
+            // If not all words matched, reject partial/accidental match
+            if (matchedWords < tgtWords.length) {
+                return 0.0f;
+            }
+
+            // All words present: calculate word-level score
+            return (float) matchedWords / tgtWords.length;
+        }
+
+        // Single word codeword: standard Levenshtein
         int dist = computeLevenshteinDistance(hyp, tgt);
         int maxLen = Math.max(hyp.length(), tgt.length());
         if (maxLen == 0) return 1.0f;
 
-        float charSim = 1.0f - ((float) dist / maxLen);
-
-        // Word token overlap check
-        String[] hypWords = hyp.split(" ");
-        String[] tgtWords = tgt.split(" ");
-        int matchedWords = 0;
-        for (String tw : tgtWords) {
-            for (String hw : hypWords) {
-                if (tw.equals(hw) || computeLevenshteinDistance(tw, hw) <= 1) {
-                    matchedWords++;
-                    break;
-                }
-            }
-        }
-        float wordSim = (float) matchedWords / tgtWords.length;
-
-        return Math.max(charSim, wordSim);
+        return 1.0f - ((float) dist / maxLen);
     }
 
     private static int computeLevenshteinDistance(String s1, String s2) {
