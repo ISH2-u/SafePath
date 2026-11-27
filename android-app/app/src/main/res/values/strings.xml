@@ -108,5 +108,5 @@
     <!-- Emergency SOS Triggers -->
     <string name="tile_sos_label">SafePath SOS</string>
     <string name="accessibility_service_name">SafePath Hardware SOS Service</string>
-    <string name="accessibility_service_description">Monitors physical Volume Up key presses (3x within 2s) to activate Emergency SOS when in foreground or background. SafePath does not inspect screen contents or typed text.</string>
+    <string name="accessibility_service_description">Monitors physical Volume Down key presses (3x within 2s) to activate Emergency SOS when in foreground or background. SafePath does not inspect screen contents or typed text.</string>
 </resources>

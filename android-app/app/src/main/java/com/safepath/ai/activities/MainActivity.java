@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
         // Hardware Volume Key SOS trigger in foreground
         volumeKeyDetector = new VolumeKeyDetector(() -> {
             SosCoordinator.getInstance(getApplicationContext())
-                    .startCountdown("VOLUME_KEY", null, "Hardware SOS: Volume Up x3 (Foreground)");
+                    .startCountdown("VOLUME_KEY", null, "Hardware SOS: Volume Down x3 (Foreground)");
         });
 
         // Navigation

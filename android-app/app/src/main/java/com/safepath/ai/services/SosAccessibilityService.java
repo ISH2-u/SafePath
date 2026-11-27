@@ -17,14 +17,14 @@ import com.safepath.ai.controllers.SosCoordinator;
 import com.safepath.ai.controllers.VolumeKeyDetector;
 
 /**
- * SosAccessibilityService — Intercepts physical Volume Up hardware key events globally
+ * SosAccessibilityService — Intercepts physical Volume Down hardware key events globally
  * using Android's AccessibilityService framework with key-event filtering.
  *
  * SPECIFICATION & SECURITY:
  * - Only filters key events (FLAG_REQUEST_FILTER_KEY_EVENTS).
  * - Does not read screen contents, text, or user input (eventTypes = 0).
  * - Completely disclosed in SafePath settings with direct shortcut to system settings.
- * - Detects 3 rapid Volume Up presses (within 2s) to activate Emergency SOS.
+ * - Detects 3 rapid Volume Down presses (within 2s) to activate Emergency SOS.
  */
 public class SosAccessibilityService extends AccessibilityService {
 
@@ -65,7 +65,7 @@ public class SosAccessibilityService extends AccessibilityService {
         mainHandler.post(() -> {
             // 1. Initiate shared SOS countdown on SosCoordinator
             SosCoordinator coordinator = SosCoordinator.getInstance(getApplicationContext());
-            coordinator.startCountdown("VOLUME_KEY", null, "Hardware SOS: Volume Up x3");
+            coordinator.startCountdown("VOLUME_KEY", null, "Hardware SOS: Volume Down x3");
 
             // 2. Bring SafePath app to foreground if permitted
             try {

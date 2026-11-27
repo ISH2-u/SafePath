@@ -40,7 +40,7 @@ import java.util.UUID;
  * CRITICAL ARCHITECTURE RULE:
  * All SOS activation methods:
  * 1. Manual in-app SOS button (SosFragment)
- * 2. Hardware Volume Up triple press (SosAccessibilityService / MainActivity)
+ * 2. Hardware Volume Down triple press (SosAccessibilityService / MainActivity)
  * 3. Quick Settings SOS Tile (SosQuickSettingsTileService)
  * use this exact SAME coordinator instance.
  *
