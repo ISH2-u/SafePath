@@ -27,7 +27,6 @@ import com.safepath.ai.activities.MainActivity;
 import com.safepath.ai.models.SosEvent;
 import com.safepath.ai.network.dto.SosResponse;
 import com.safepath.ai.repositories.SosRepository;
-import com.safepath.ai.services.VoiceRecognitionService;
 import com.safepath.ai.utils.VoicePreferenceManager;
 
 import java.text.SimpleDateFormat;
@@ -39,12 +38,15 @@ import java.util.UUID;
  * SosCoordinator — Unified Singleton SOS Controller.
  *
  * CRITICAL ARCHITECTURE RULE:
- * Both manual SOS button (SosFragment) and Voice SOS (VoiceRecognitionService)
+ * All SOS activation methods:
+ * 1. Manual in-app SOS button (SosFragment)
+ * 2. Hardware Volume Up triple press (SosAccessibilityService / MainActivity)
+ * 3. Quick Settings SOS Tile (SosQuickSettingsTileService)
  * use this exact SAME coordinator instance.
  *
  * Responsibilities:
  * 1. Single shared countdown timer (5 -> 4 -> 3 -> 2 -> 1 -> dispatch).
- * 2. In-place Android Notification updates across all states (Monitoring -> Countdown -> Dispatching -> Result).
+ * 2. In-place Android Notification updates across all states (Countdown -> Dispatching -> Result).
  * 3. Prevention of duplicate/overlapping SOS dispatches with 45s debounce cooldown.
  * 4. High-accuracy GPS location acquisition with graceful last-known fallback.
  * 5. Full execution through SosRepository -> Room local store -> FastAPI backend.
@@ -55,7 +57,8 @@ public class SosCoordinator {
     private static final String TAG = "SosCoordinator";
 
     public static final String ACTION_CANCEL_SOS = "com.safepath.ai.action.CANCEL_SOS";
-    public static final String ACTION_STOP_MONITORING = "com.safepath.ai.action.STOP_VOICE_SERVICE";
+    public static final String CHANNEL_ID = "safepath_emergency_sos_channel";
+    public static final int NOTIFICATION_ID = 2002;
 
     // 45-second debounce window between completed SOS events
     private static final long SOS_DEBOUNCE_COOLDOWN_MS = 45_000L;
@@ -115,11 +118,11 @@ public class SosCoordinator {
     public void ensureNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
-                    VoiceRecognitionService.CHANNEL_ID,
-                    "Voice Codeword & Emergency SOS",
+                    CHANNEL_ID,
+                    "Emergency SOS Notifications",
                     NotificationManager.IMPORTANCE_HIGH
             );
-            channel.setDescription("Shows active voice monitoring status and real-time emergency SOS countdowns.");
+            channel.setDescription("Shows real-time emergency SOS countdowns, cancellation controls, and delivery confirmations.");
             channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
             channel.setShowBadge(true);
             channel.enableVibration(true);
@@ -183,7 +186,7 @@ public class SosCoordinator {
 
             @Override
             public void onFinish() {
-                logAudit("SOS_COUNTDOWN_COMPLETED", activeTriggerSource, "Countdown reached 0. Discarding timer, initiating dispatch.");
+                logAudit("SOS_COUNTDOWN_COMPLETED", activeTriggerSource, "Countdown reached 0. Initiating dispatch.");
 
                 mainHandler.post(() -> {
                     isCountingDown.setValue(false);
@@ -215,13 +218,9 @@ public class SosCoordinator {
             statusMessage.setValue("Emergency SOS dispatch cancelled.");
         });
 
-        // Restore notification back to active voice monitoring if service is running
-        if (prefManager.isMonitoringActive()) {
-            showVoiceMonitoringActiveNotification();
-        } else {
-            if (notificationManager != null) {
-                notificationManager.cancel(VoiceRecognitionService.NOTIFICATION_ID);
-            }
+        // Dismiss the countdown notification
+        if (notificationManager != null) {
+            notificationManager.cancel(NOTIFICATION_ID);
         }
     }
 
@@ -320,44 +319,6 @@ public class SosCoordinator {
 
     // ── Notifications ─────────────────────────────────────────────────────────
 
-    public Notification buildMonitoringNotification() {
-        Intent openAppIntent = new Intent(appContext, MainActivity.class);
-        PendingIntent contentPendingIntent = PendingIntent.getActivity(
-                appContext, 0, openAppIntent,
-                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
-        );
-
-        Intent stopIntent = new Intent(ACTION_STOP_MONITORING);
-        stopIntent.setPackage(appContext.getPackageName());
-        PendingIntent stopPendingIntent = PendingIntent.getBroadcast(
-                appContext, 1, stopIntent,
-                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
-        );
-
-        String codeword = prefManager.getCodeword();
-        if (codeword.isEmpty()) codeword = "Blue Moon";
-        // Capitalize for display
-        String displayCodeword = capitalizeWords(codeword);
-
-        return new NotificationCompat.Builder(appContext, VoiceRecognitionService.CHANNEL_ID)
-                .setContentTitle("SafePath Voice Monitoring Active")
-                .setContentText("Listening for your configured emergency codeword: " + displayCodeword)
-                .setSmallIcon(R.drawable.ic_mic)
-                .setContentIntent(contentPendingIntent)
-                .addAction(R.drawable.ic_stop, "Stop Monitoring", stopPendingIntent)
-                .setOngoing(true)
-                .setCategory(NotificationCompat.CATEGORY_SERVICE)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .build();
-    }
-
-    public void showVoiceMonitoringActiveNotification() {
-        if (notificationManager != null) {
-            notificationManager.notify(VoiceRecognitionService.NOTIFICATION_ID, buildMonitoringNotification());
-        }
-    }
-
     private void updateCountdownNotification(int secondsLeft) {
         Intent cancelIntent = new Intent(ACTION_CANCEL_SOS);
         cancelIntent.setPackage(appContext.getPackageName());
@@ -376,8 +337,15 @@ public class SosCoordinator {
                 "Emergency SOS sending in %d %s",
                 secondsLeft, secondsLeft == 1 ? "second" : "seconds");
 
-        Notification notification = new NotificationCompat.Builder(appContext, VoiceRecognitionService.CHANNEL_ID)
-                .setContentTitle("SafePath — Emergency SOS")
+        String title = "SafePath — Emergency SOS";
+        if ("VOLUME_KEY".equals(activeTriggerSource)) {
+            title = "SafePath — Hardware SOS Triggered";
+        } else if ("QUICK_SETTINGS".equals(activeTriggerSource)) {
+            title = "SafePath — Quick Settings SOS Triggered";
+        }
+
+        Notification notification = new NotificationCompat.Builder(appContext, CHANNEL_ID)
+                .setContentTitle(title)
                 .setContentText(text)
                 .setSmallIcon(R.drawable.ic_sos)
                 .setContentIntent(contentPendingIntent)
@@ -390,7 +358,7 @@ public class SosCoordinator {
                 .build();
 
         if (notificationManager != null) {
-            notificationManager.notify(VoiceRecognitionService.NOTIFICATION_ID, notification);
+            notificationManager.notify(NOTIFICATION_ID, notification);
         }
     }
 
@@ -401,7 +369,7 @@ public class SosCoordinator {
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
         );
 
-        Notification notification = new NotificationCompat.Builder(appContext, VoiceRecognitionService.CHANNEL_ID)
+        Notification notification = new NotificationCompat.Builder(appContext, CHANNEL_ID)
                 .setContentTitle("SafePath — Emergency SOS")
                 .setContentText("Broadcasting emergency alert to verified contacts...")
                 .setSmallIcon(R.drawable.ic_sos)
@@ -413,7 +381,7 @@ public class SosCoordinator {
                 .build();
 
         if (notificationManager != null) {
-            notificationManager.notify(VoiceRecognitionService.NOTIFICATION_ID, notification);
+            notificationManager.notify(NOTIFICATION_ID, notification);
         }
     }
 
@@ -447,7 +415,7 @@ public class SosCoordinator {
             text = "Your emergency alert has been accepted for dispatch.";
         }
 
-        Notification notification = new NotificationCompat.Builder(appContext, VoiceRecognitionService.CHANNEL_ID)
+        Notification notification = new NotificationCompat.Builder(appContext, CHANNEL_ID)
                 .setContentTitle(title)
                 .setContentText(text)
                 .setSmallIcon(R.drawable.ic_sos)
@@ -460,7 +428,7 @@ public class SosCoordinator {
                 .build();
 
         if (notificationManager != null) {
-            notificationManager.notify(VoiceRecognitionService.NOTIFICATION_ID, notification);
+            notificationManager.notify(NOTIFICATION_ID, notification);
         }
     }
 
@@ -471,7 +439,7 @@ public class SosCoordinator {
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
         );
 
-        Notification notification = new NotificationCompat.Builder(appContext, VoiceRecognitionService.CHANNEL_ID)
+        Notification notification = new NotificationCompat.Builder(appContext, CHANNEL_ID)
                 .setContentTitle("SafePath — Emergency SOS")
                 .setContentText("SOS dispatch failed — Tap to retry or open SafePath.")
                 .setSmallIcon(R.drawable.ic_sos)
@@ -484,24 +452,8 @@ public class SosCoordinator {
                 .build();
 
         if (notificationManager != null) {
-            notificationManager.notify(VoiceRecognitionService.NOTIFICATION_ID, notification);
+            notificationManager.notify(NOTIFICATION_ID, notification);
         }
-    }
-
-    private String capitalizeWords(String input) {
-        if (input == null || input.isEmpty()) return "";
-        String[] parts = input.trim().split("\\s+");
-        StringBuilder sb = new StringBuilder();
-        for (String p : parts) {
-            if (!p.isEmpty()) {
-                sb.append(Character.toUpperCase(p.charAt(0)));
-                if (p.length() > 1) {
-                    sb.append(p.substring(1).toLowerCase(Locale.ENGLISH));
-                }
-                sb.append(" ");
-            }
-        }
-        return sb.toString().trim();
     }
 
     private void logAudit(String eventType, String triggerSource, String details) {

@@ -25,6 +25,215 @@
             android:textStyle="bold"
             android:textColor="@color/color_on_surface" />
 
+        <!-- ─── Hardware & Quick Settings SOS Triggers ──────────────── -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Emergency SOS Activation Methods"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/color_primary" />
+
+        <!-- Volume Button SOS Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:src="@drawable/ic_sos"
+                        app:tint="@color/color_sos_red" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="12dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Hardware Volume Up (3x Press)"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/color_on_surface" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Press Volume Up 3 times rapidly (within 2s) to trigger SOS."
+                            android:textSize="12sp"
+                            android:textColor="@color/color_on_surface_variant" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvAccessibilityStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="Status: Checking accessibility..."
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/color_moderate_risk" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnConfigureAccessibility"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="10dp"
+                    android:text="Configure Accessibility Service"
+                    android:textSize="13sp"
+                    app:cornerRadius="10dp"
+                    app:strokeColor="@color/color_primary" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Requires SafePath Accessibility Service for background key capture. Zero screen content or typing data is read. Key capture while screen is completely off may vary by OEM power savings."
+                    android:textSize="11sp"
+                    android:textColor="@color/color_on_surface_variant" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Quick Settings SOS Tile Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:src="@drawable/ic_shield"
+                        app:tint="@color/color_primary" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="12dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Quick Settings Notification Tile"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/color_on_surface" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Instant SOS tile in the Android notification panel."
+                            android:textSize="12sp"
+                            android:textColor="@color/color_on_surface_variant" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="How to add tile:\n1. Pull down notification panel twice to open Quick Settings.\n2. Tap the Pencil / Edit icon.\n3. Drag 'SafePath SOS' into your active tiles."
+                    android:textSize="12sp"
+                    android:textColor="@color/color_on_surface_variant" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Voice Codeword Configuration Shortcut -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardVoiceCodewordShortcut"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="1dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/ic_mic"
+                    app:tint="@color/color_primary" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Voice Codeword Setup &amp; In-App Test"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/color_on_surface" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Configure secret phrase &amp; test acoustic recognition"
+                        android:textSize="12sp"
+                        android:textColor="@color/color_on_surface_variant" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_send"
+                    app:tint="@color/color_on_surface_variant" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- Security & Privacy Card -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
@@ -89,62 +298,6 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Voice Codeword Configuration Shortcut -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardVoiceCodewordShortcut"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:cardCornerRadius="14dp"
-            app:cardElevation="1dp"
-            android:clickable="true"
-            android:focusable="true">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="16dp"
-                android:gravity="center_vertical">
-
-                <ImageView
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
-                    android:src="@drawable/ic_mic"
-                    app:tint="@color/color_primary" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="12dp"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Voice Codeword Setup"
-                        android:textSize="15sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/color_on_surface" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="Set secret trigger phrase &amp; sensitivity"
-                        android:textSize="12sp"
-                        android:textColor="@color/color_on_surface_variant" />
-                </LinearLayout>
-
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@drawable/ic_send"
-                    app:tint="@color/color_on_surface_variant" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
         <!-- Privacy Architecture Guarantee Card -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
@@ -172,7 +325,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
-                    android:text="• All tokens stored with hardware-backed AES-256 encryption.\n• Audio monitoring operates 100% on-device.\n• Location is shared solely with your verified emergency contacts list."
+                    android:text="• All tokens stored with hardware-backed AES-256 encryption.\n• Background microphone listening is disabled.\n• Location is shared solely with your verified emergency contacts list."
                     android:textSize="12sp"
                     android:textColor="@color/color_on_surface_variant" />
             </LinearLayout>

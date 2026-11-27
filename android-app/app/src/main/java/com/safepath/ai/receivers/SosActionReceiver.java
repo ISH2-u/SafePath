@@ -6,10 +6,9 @@ import android.content.Intent;
 import android.util.Log;
 
 import com.safepath.ai.controllers.SosCoordinator;
-import com.safepath.ai.services.VoiceRecognitionService;
 
 /**
- * SosActionReceiver — Handles notification action buttons (Cancel SOS, Stop Voice Monitoring).
+ * SosActionReceiver — Handles notification action buttons (Cancel SOS) and testing broadcasts.
  */
 public class SosActionReceiver extends BroadcastReceiver {
 
@@ -23,11 +22,10 @@ public class SosActionReceiver extends BroadcastReceiver {
 
         if (SosCoordinator.ACTION_CANCEL_SOS.equals(action)) {
             SosCoordinator.getInstance(context).cancelCountdown();
-        } else if (SosCoordinator.ACTION_STOP_MONITORING.equals(action) ||
-                VoiceRecognitionService.ACTION_STOP.equals(action)) {
-            VoiceRecognitionService.stop(context);
-        } else if ("com.safepath.ai.action.TRIGGER_VOICE_SOS".equals(action)) {
-            SosCoordinator.getInstance(context).startCountdown("VOICE", null, "Voice Codeword: blue moon");
+        } else if ("com.safepath.ai.action.TRIGGER_HARDWARE_SOS".equals(action)) {
+            SosCoordinator.getInstance(context).startCountdown("VOLUME_KEY", null, "Hardware SOS Broadcast Test");
+        } else if ("com.safepath.ai.action.TRIGGER_TILE_SOS".equals(action)) {
+            SosCoordinator.getInstance(context).startCountdown("QUICK_SETTINGS", null, "Quick Settings Tile Broadcast Test");
         }
     }
 }

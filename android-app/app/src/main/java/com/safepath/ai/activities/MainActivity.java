@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import androidx.activity.result.ActivityResultLauncher;
@@ -22,6 +23,8 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.safepath.ai.R;
+import com.safepath.ai.controllers.SosCoordinator;
+import com.safepath.ai.controllers.VolumeKeyDetector;
 import com.safepath.ai.viewmodels.AuthViewModel;
 
 /**
@@ -37,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
     private NavController navController;
     private AuthViewModel authViewModel;
     private BottomNavigationView bottomNav;
+    private VolumeKeyDetector volumeKeyDetector;
 
     private final ActivityResultLauncher<String> notificationPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {});
@@ -62,6 +66,12 @@ public class MainActivity extends AppCompatActivity {
 
         // ViewModel for logout
         authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
+
+        // Hardware Volume Key SOS trigger in foreground
+        volumeKeyDetector = new VolumeKeyDetector(() -> {
+            SosCoordinator.getInstance(getApplicationContext())
+                    .startCountdown("VOLUME_KEY", null, "Hardware SOS: Volume Up x3 (Foreground)");
+        });
 
         // Navigation
         NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
@@ -193,6 +203,14 @@ public class MainActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (volumeKeyDetector != null && volumeKeyDetector.onKeyEvent(event)) {
+            return true;
+        }
+        return super.dispatchKeyEvent(event);
     }
 
     @Override

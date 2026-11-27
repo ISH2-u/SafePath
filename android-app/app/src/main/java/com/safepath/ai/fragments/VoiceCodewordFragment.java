@@ -3,7 +3,6 @@ package com.safepath.ai.fragments;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
@@ -13,7 +12,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
@@ -26,25 +24,24 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
-import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputLayout;
 import com.safepath.ai.R;
-import com.safepath.ai.services.VoiceRecognitionService;
+import com.safepath.ai.ai.CodewordDetector;
 import com.safepath.ai.utils.VoicePreferenceManager;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 
 /**
- * VoiceCodewordFragment — UI for personal voice codeword management,
- * sensitivity calibration, safe testing, and foreground listener control.
+ * VoiceCodewordFragment — UI for personal voice codeword configuration and
+ * in-app acoustic calibration/testing.
+ *
+ * NOTE: Continuous background microphone monitoring has been removed to preserve
+ * privacy and battery life. Voice input is exclusively processed on-demand when
+ * the user explicitly taps "Test Phrase Recognition".
  */
 public class VoiceCodewordFragment extends Fragment {
 
     private VoicePreferenceManager prefManager;
-    private SwitchMaterial switchVoiceMonitoring;
-    private TextView tvMonitoringStatusSubtitle;
-    private ImageView ivServiceStatusIcon;
     private EditText etCodeword;
     private TextInputLayout tilCodeword;
     private RadioGroup rgSensitivity;
@@ -59,39 +56,14 @@ public class VoiceCodewordFragment extends Fragment {
     private SpeechRecognizer testRecognizer;
     private boolean isTesting = false;
 
-    private final ActivityResultLauncher<String[]> permissionsLauncher =
-            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
-                boolean audioGranted = Boolean.TRUE.equals(result.get(Manifest.permission.RECORD_AUDIO));
-                if (audioGranted) {
-                    if (switchVoiceMonitoring != null && switchVoiceMonitoring.isChecked()) {
-                        startVoiceService();
-                    } else if (isTesting) {
-                        beginAcousticTest();
-                    }
-                } else {
-                    if (switchVoiceMonitoring != null) {
-                        switchVoiceMonitoring.setChecked(false);
-                    }
-                    Toast.makeText(requireContext(),
-                            "Microphone permission is required to detect your emergency codeword.",
-                            Toast.LENGTH_LONG).show();
-                }
-            });
-
     private final ActivityResultLauncher<String> recordAudioLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if (isGranted) {
-                    if (switchVoiceMonitoring != null && switchVoiceMonitoring.isChecked()) {
-                        startVoiceService();
-                    } else if (isTesting) {
-                        beginAcousticTest();
-                    }
+                    beginAcousticTest();
                 } else {
-                    if (switchVoiceMonitoring != null) {
-                        switchVoiceMonitoring.setChecked(false);
-                    }
+                    isTesting = false;
                     Toast.makeText(requireContext(),
-                            "Microphone permission is required to detect your emergency codeword.",
+                            "Microphone permission is required for in-app voice testing.",
                             Toast.LENGTH_LONG).show();
                 }
             });
@@ -115,9 +87,6 @@ public class VoiceCodewordFragment extends Fragment {
     }
 
     private void initViews(View view) {
-        switchVoiceMonitoring = view.findViewById(R.id.switchVoiceMonitoring);
-        tvMonitoringStatusSubtitle = view.findViewById(R.id.tvMonitoringStatusSubtitle);
-        ivServiceStatusIcon = view.findViewById(R.id.ivServiceStatusIcon);
         etCodeword = view.findViewById(R.id.etCodeword);
         tilCodeword = view.findViewById(R.id.tilCodeword);
         rgSensitivity = view.findViewById(R.id.rgSensitivity);
@@ -145,37 +114,9 @@ public class VoiceCodewordFragment extends Fragment {
         } else {
             if (rbBalanced != null) rbBalanced.setChecked(true);
         }
-
-        boolean isActive = prefManager.isMonitoringActive();
-        updateMonitoringStateUI(isActive);
     }
 
     private void setupListeners() {
-        if (switchVoiceMonitoring != null) {
-            switchVoiceMonitoring.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                if (isChecked) {
-                    List<String> needed = new ArrayList<>();
-                    if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO)
-                            != PackageManager.PERMISSION_GRANTED) {
-                        needed.add(Manifest.permission.RECORD_AUDIO);
-                    }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                            ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS)
-                                    != PackageManager.PERMISSION_GRANTED) {
-                        needed.add(Manifest.permission.POST_NOTIFICATIONS);
-                    }
-
-                    if (!needed.isEmpty()) {
-                        permissionsLauncher.launch(needed.toArray(new String[0]));
-                    } else {
-                        startVoiceService();
-                    }
-                } else {
-                    stopVoiceService();
-                }
-            });
-        }
-
         if (btnSaveVoiceCodeword != null) {
             btnSaveVoiceCodeword.setOnClickListener(v -> savePreferences());
         }
@@ -190,36 +131,6 @@ public class VoiceCodewordFragment extends Fragment {
                     beginAcousticTest();
                 }
             });
-        }
-    }
-
-    private void startVoiceService() {
-        VoiceRecognitionService.start(requireContext());
-        prefManager.setMonitoringActive(true);
-        updateMonitoringStateUI(true);
-        Toast.makeText(requireContext(), "On-device codeword listening active.", Toast.LENGTH_SHORT).show();
-    }
-
-    private void stopVoiceService() {
-        VoiceRecognitionService.stop(requireContext());
-        prefManager.setMonitoringActive(false);
-        updateMonitoringStateUI(false);
-        Toast.makeText(requireContext(), "Voice codeword listening paused.", Toast.LENGTH_SHORT).show();
-    }
-
-    private void updateMonitoringStateUI(boolean isActive) {
-        if (switchVoiceMonitoring != null) {
-            switchVoiceMonitoring.setChecked(isActive);
-        }
-        if (tvMonitoringStatusSubtitle != null) {
-            tvMonitoringStatusSubtitle.setText(isActive ? "Active (On-Device Listening)" : "Currently Inactive");
-            tvMonitoringStatusSubtitle.setTextColor(ContextCompat.getColor(requireContext(),
-                    isActive ? R.color.color_safe_green : R.color.color_on_surface_variant));
-        }
-        if (ivServiceStatusIcon != null) {
-            ivServiceStatusIcon.setImageResource(isActive ? R.drawable.ic_mic : R.drawable.ic_mic_off);
-            ivServiceStatusIcon.setColorFilter(ContextCompat.getColor(requireContext(),
-                    isActive ? R.color.color_safe_green : R.color.color_on_surface_variant));
         }
     }
 
@@ -257,6 +168,7 @@ public class VoiceCodewordFragment extends Fragment {
         }
         if (tvTestStatus != null) {
             tvTestStatus.setText("Listening... Say your phrase clearly.");
+            tvTestStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_primary));
         }
         if (tvTestMatchScore != null) {
             tvTestMatchScore.setText("Match Confidence: Calculating...");
@@ -285,6 +197,7 @@ public class VoiceCodewordFragment extends Fragment {
             public void onError(int error) {
                 if (tvTestStatus != null) {
                     tvTestStatus.setText("No speech recognized. Try speaking closer to mic.");
+                    tvTestStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_high_risk));
                 }
                 isTesting = false;
             }
@@ -297,6 +210,7 @@ public class VoiceCodewordFragment extends Fragment {
                 } else {
                     if (tvTestStatus != null) {
                         tvTestStatus.setText("Could not recognize spoken phrase.");
+                        tvTestStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_high_risk));
                     }
                 }
                 isTesting = false;
@@ -322,8 +236,7 @@ public class VoiceCodewordFragment extends Fragment {
         String bestMatch = "";
 
         for (String spoken : matches) {
-            float sim = calculateSimilarity(configuredPhrase.toLowerCase(Locale.ROOT),
-                    spoken.toLowerCase(Locale.ROOT));
+            float sim = CodewordDetector.calculateSimilarity(spoken, configuredPhrase);
             if (sim > bestSimilarity) {
                 bestSimilarity = sim;
                 bestMatch = spoken;
@@ -347,30 +260,6 @@ public class VoiceCodewordFragment extends Fragment {
         if (tvTestMatchScore != null) {
             tvTestMatchScore.setText("Spoken: \"" + bestMatch + "\" | Confidence: " + scorePercent + "%");
         }
-    }
-
-    private float calculateSimilarity(String s1, String s2) {
-        if (s1.equals(s2)) return 1.0f;
-        int maxLen = Math.max(s1.length(), s2.length());
-        if (maxLen == 0) return 1.0f;
-        int distance = computeLevenshteinDistance(s1, s2);
-        return 1.0f - ((float) distance / (float) maxLen);
-    }
-
-    private int computeLevenshteinDistance(String a, String b) {
-        int[] costs = new int[b.length() + 1];
-        for (int j = 0; j <= b.length(); j++) costs[j] = j;
-        for (int i = 1; i <= a.length(); i++) {
-            costs[0] = i;
-            int nw = i - 1;
-            for (int j = 1; j <= b.length(); j++) {
-                int cj = Math.min(1 + Math.min(costs[j], costs[j - 1]),
-                        a.charAt(i - 1) == b.charAt(j - 1) ? nw : nw + 1);
-                nw = costs[j];
-                costs[j] = cj;
-            }
-        }
-        return costs[b.length()];
     }
 
     @Override

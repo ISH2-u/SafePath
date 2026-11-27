@@ -104,4 +104,9 @@
     <string name="settings_biometric_lock">Require Biometric Authentication on Launch</string>
     <string name="settings_location_accuracy">High-Accuracy GPS Mode</string>
     <string name="settings_auto_sms">Auto-Send SMS on Low Battery</string>
+
+    <!-- Emergency SOS Triggers -->
+    <string name="tile_sos_label">SafePath SOS</string>
+    <string name="accessibility_service_name">SafePath Hardware SOS Service</string>
+    <string name="accessibility_service_description">Monitors physical Volume Up key presses (3x within 2s) to activate Emergency SOS when in foreground or background. SafePath does not inspect screen contents or typed text.</string>
 </resources>
